@@ -2,6 +2,7 @@
 #' 
 #' @param path Character strings or vector of character stings indicating LICOR files to be read (.csv, .xls, or .xlsx). Single files can be imported, or multiple files can be imported and concatenated by row. If a directory name is given, all files in the directory will be read and concatenated by row.
 #' 
+#' @details This function is not intended to read raw LICOR files. Instead, raw data should be tidied into a data.frame like structure with header and comments removed. There should be only one row with column heading. Each subsequent row should correspond to one obervation and each column to one variable.
 #' @examples 
 #' 
 #' library(bayCi)

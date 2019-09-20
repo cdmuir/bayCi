@@ -50,6 +50,72 @@ baycir <- function(
   
 }
 
-process_empty <- function(empty) {
+prepare_empty <- function(empty) {
+ 
+  # Note: could add argument to try up to Nth order polynomial, rather than default to 3rd order.
+  
+  # Messages ----
+  "Preparing empty chamber response curve" %>%
+    crayon::bold() %>%
+    crayon::blue() %>%
+    message()
+  
+  glue::glue("Original dataset contains {n} rows", n = nrow(empty)) %>%
+    crayon::blue() %>%
+    message()
+  
+  # Initial fit ----
+  empty %<>% dplyr::mutate(row = 1:nrow(.))
+  original_empty <- empty
+  
+  fit1 <- lm(A ~ Ci, data = empty)
+  fit2 <- update(fit1, . ~  poly(Ci, 2))
+  fit3 <- update(fit1, . ~  poly(Ci, 3))
+  
+  # Iterative pruning ----
+  dAIC <- AIC(fit1) - min(AIC(fit2), AIC(fit3))
+  dRow <- 1
+  
+  "Iteratively pruning nonlinear portions of the curve..." %>%
+    crayon::blue() %>%
+    message()
+  
+  while(dAIC > 0 & dRow > 0) {
+    
+    nrow1 <- nrow(empty)
+    empty %<>%
+      mutate(res2 = fit1$residuals ^ 2) %>%
+      filter(res2 < max(res2))
+    nrow2 <- nrow(empty)
+    dRow <- nrow1 - nrow2
+    
+    if (dRow == 0) {
+      warning("In 'prepare_empty', algorithm stopped before complete linearization. Inspect results carefully.")
+    }
+    
+    fit1 %<>% update()
+    fit2 %<>% update()
+    fit3 %<>% update()
+    
+    dAIC <- AIC(fit1) - min(AIC(fit2), AIC(fit3))
+    
+  }
+  
+  glue::glue("Final dataset contains {n} rows", n = nrow(empty)) %>%
+    crayon::blue() %>%
+    message()
+
+  # Inspect results ----
+  if (nrow(empty) < 10) {
+    if (nrow(empty) < 2) {
+      stop("'prepare_empty' did not find a linear portion of the calibration curve.")
+    } else {
+      warning("In 'prepare_empty', fewer than 10 data points remain in empty chamber correction curve. Inspect results carefully.")
+    }
+  }
+  
+  # Return ----
+  # combined original and final or something...
+  empty
   
 }
