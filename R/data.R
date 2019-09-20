@@ -25,3 +25,7 @@
 #' 
 #' @source \url{https://doi.org/10.1111/pce.12911}
 "stinziano_etal_2017"
+
+#' Data from empty chamber for correcting apparent A
+#' @rdname stinziano_etal_2017
+"stinziano_etal_2017_empty"

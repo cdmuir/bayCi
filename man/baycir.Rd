@@ -4,11 +4,13 @@
 \alias{baycir}
 \title{Fit a single RACiR curve}
 \usage{
-baycir(data, chains = 1, iter = 2000, warmup = floor(iter/2),
+baycir(data, empty, chains = 1, iter = 2000, warmup = floor(iter/2),
   thin = 1, cores = getOption("mc.cores", 1L), ...)
 }
 \arguments{
-\item{data}{An object of class \code{data.frame} containing data of all model variables}
+\item{data}{An object of class \code{data.frame} containing data for all model variables.}
+
+\item{empty}{An object of class \code{data.frame} containing data from empty chamber to correct response data.}
 
 \item{chains}{Number of Markov chains (defaults to 1).}
 

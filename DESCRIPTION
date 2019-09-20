@@ -4,8 +4,7 @@ Title: Bayesian Photosynthetic Response Curves Using Stan
 Date: 2019-09-19
 Version: 0.0.0.9000
 Authors@R: person("Chris", "Muir", role = c("aut", "cre"), email = "cdmuir@hawaii.edu", comment = c(ORCID = "0000-0003-2555-3878"))
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Description: Fit C3 photosynthetic response curves to the Farquhar, von Caemmerer, Berry (1980) <doi:10.1007/BF00386231> biochemical model using Bayesian models implemented in Stan. Users can fit single standard curves, single RACiR curves following Stinziano *et al.* (2017) <doi:10.1111/pce.12911>, or multiple curves simultaneously in a hierarchical model.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -14,10 +13,11 @@ RoxygenNote: 6.1.1
 Suggests: 
     testthat (>= 2.1.0),
     knitr,
+    readxl (>= 1.3.1),
     rmarkdown
 Imports: 
     magrittr (>= 1.5.0),
     parallel (>= 3.6.0),
-    readxl (>= 1.3.1),
-    rstan (>= 2.19.0)
+    rstan (>= 2.19.0),
+    units (>= 0.6)
 VignetteBuilder: knitr

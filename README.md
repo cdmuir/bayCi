@@ -5,6 +5,12 @@
 
 <!-- badges: start -->
 
+<!-- [![CRAN status](https://www.r-pkg.org/badges/version/bayCi)](https://cran.r-project.org/package=bayCi) -->
+
+[![Build
+Status](https://travis-ci.org/cdmuir/bayci.svg?branch=master)](https://travis-ci.org/cdmuir/bayCi)
+<!-- [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2808079.svg)](https://doi.org/10.5281/zenodo.2808079) -->
+<!-- [![](https://cranlogs.r-pkg.org/badges/bayCi)](https://cran.r-project.org/package=bayCi) -->
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->
@@ -54,8 +60,24 @@ library(bayCi)
 
 ### Prepare data
 
+## Contributors
+
+  - [Chris Muir](https://github.com/cdmuir)
+
+## Comments and contributions
+
+I welcome comments, criticisms, and especially contributions\! GitHub
+issues are the preferred way to report bugs, ask questions, or request
+new features. You can submit issues here:
+
+<https://github.com/cdmuir/bayCi/issues>
+
 ## Meta
 
-Please note that the ‘bayCi’ project is released with a [Contributor
-Code of Conduct](CODE_OF_CONDUCT.md). By contributing to this project,
-you agree to abide by its terms.
+  - Please [report any issues or
+    bugs](https://github.com/cdmuir/bayCi/issues).
+  - License: MIT
+    <!-- * Get citation information for `bayCi` in R doing `citation(package = 'bayCi')` -->
+  - Please note that the ‘bayCi’ project is released with a [Contributor
+    Code of Conduct](CODE_OF_CONDUCT.md). By contributing to this
+    project, you agree to abide by its terms.
