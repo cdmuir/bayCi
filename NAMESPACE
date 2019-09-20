@@ -3,6 +3,7 @@
 export("%>%")
 export(aci)
 export(bayCi)
+export(baycir)
 export(new_aci)
 export(read_aci)
 export(validate_aci)
