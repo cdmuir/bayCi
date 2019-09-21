@@ -7,7 +7,7 @@
 \alias{acir}
 \title{S3 class 'acir'}
 \usage{
-new_acir(x, id_cols = character(), covariate_cols = character())
+new_acir(x)
 
 validate_acir(x)
 
@@ -15,10 +15,6 @@ acir(x)
 }
 \arguments{
 \item{x}{A \code{data.frame} or \code{\link[tibble:tibble]{tibble}} to be constructed into 'acir' class or validated.}
-
-\item{id_cols}{A character string or vector of column names in \code{x} that are used to identify data (e.g. taxa, treatment, replicate, etc.). These will be converted to characters.}
-
-\item{covariate_cols}{A character string or vector of column names in \code{x} that are used to identify covariates (numeric or categorical). Factors will be converted to characters.}
 }
 \description{
 'acir' class objects are required for \code{\link{baycir}}

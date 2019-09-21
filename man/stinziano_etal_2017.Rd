@@ -3,7 +3,6 @@
 \docType{data}
 \name{stinziano_etal_2017}
 \alias{stinziano_etal_2017}
-\alias{stinziano_etal_2017_empty}
 \title{RACiR curves in Poplar}
 \format{A data frame with 5843 rows and 12 variables:
 
@@ -27,8 +26,6 @@
 }
 \usage{
 stinziano_etal_2017
-
-stinziano_etal_2017_empty
 }
 \description{
 Example A-Ci curve dataset from Stinziano \emph{et al.} 2017

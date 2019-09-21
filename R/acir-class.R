@@ -9,13 +9,9 @@ NULL
 #' 
 #' @param x A \code{data.frame} or \code{\link[tibble:tibble]{tibble}} to be constructed into 'acir' class or validated.
 #' 
-#' @param id_cols A character string or vector of column names in \code{x} that are used to identify data (e.g. taxa, treatment, replicate, etc.). These will be converted to characters.  
-#' 
-#' @param covariate_cols A character string or vector of column names in \code{x} that are used to identify covariates (numeric or categorical). Factors will be converted to characters.  
-#' 
 #' @export
-new_acir <- function(x, id_cols = character(),
-                    covariate_cols = character()) {
+
+new_acir <- function(x) {
   
   checkmate::assert_data_frame(x)
   x %<>% tibble::as_tibble()

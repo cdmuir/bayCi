@@ -41,6 +41,12 @@ And the development version from [GitHub](https://github.com/) with:
 # install.packages("devtools")
 devtools::install_github("cdmuir/bayCi")
 ```
+
+## Fit a single Rapid *A-Ci* Response (RACiR) curve
+
+```{r child = 'vignettes/basic-racir.Rmd'}
+```
+
 ## Example
 
 This is a basic example which shows you how to solve a common problem:

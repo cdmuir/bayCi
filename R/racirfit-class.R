@@ -20,6 +20,7 @@ NULL
 
 #' @description - \code{new_racirfit} constructs a list into an 'racir' object
 #' @rdname racirfit-class
+#' @noRd
 #' 
 #' @param .x A \code{list} to be constructed into 'racirfit' class or validated.
 #' 

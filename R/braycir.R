@@ -11,7 +11,7 @@
 #' @param warmup A positive integer specifying number of warmup (aka burnin) iterations. This also specifies the number of iterations used for stepsize adaptation, so warmup samples should not be used for inference. The number of warmup should not be larger than \code{iter} and the default is \code{iter / 2}.
 #' @param thin Thinning rate. Must be a positive integer. Set \code{thin > 1} to save memory and computation time if \code{iter} is large.
 #' @param cores Number of cores to use when executing the chains in parallel (defaults to 1). Use \code{\link[parallel]{detectCores}} to detect number of CPU cores on the current host.
-#' @param ... Ignored.
+#' @param ... Additional arguments passed to \code{\link[rstan]{stan}}.
 #' 
 #' @return An object of class \code{\link[=racirfit-class]{racirfit}}
 #' 
@@ -48,11 +48,47 @@ braycir <- function(
                                upper = parallel::detectCores(), len = 1L)
 
   # Process empty chamber data for correction ----
-  empty %<>% prepare_empty()
+  empty %<>% 
+    prepare_empty() %>% 
+    dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
 
+  # Compose data for Stan ----
+  stan_data <- list(
+    n_empty = nrow(empty),
+    A_empty = empty$A,
+    Pci_empty = empty$Pci
+  )
+  
+  # Fit braycir model ----
+  "\nFitting braycir curve in Stan" %>%
+    crayon::bold() %>%
+    crayon::blue() %>%
+    message()
+
+  "Compiling model (this takes a minute)" %>%
+    crayon::blue() %>%
+    message()
+  
+  fit <- rstan::stan(
+    model_name = "braycir",
+    model_code = braycir_model,
+    data = stan_data,
+    chains = chains,
+    iter = iter,
+    warmup = warmup,
+    thin = thin,
+    cores = cores, 
+    ...
+  )
+  
+  "Stan finished" %>%
+    crayon::blue() %>%
+    message()
+  
   # Combine elements ----
   ret <- list(
-    empty = empty
+    empty = empty,
+    fit = fit
   )
   
   # Assign racirfit class ----
@@ -77,10 +113,11 @@ prepare_empty <- function(empty) {
   # Initial fit ----
   empty %<>% dplyr::mutate(row = 1:nrow(.))
   original_empty <- empty
+  empty %<>% dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
   
-  fit1 <- stats::lm(A ~ Pci, data = empty)
-  fit2 <- stats::update(fit1, . ~  poly(Pci, 2))
-  fit3 <- stats::update(fit1, . ~  poly(Pci, 3))
+  fit1 <- stats::lm(A ~ poly(Pci, 1), data = empty)
+  fit2 <- stats::lm(A ~ poly(Pci, 2), data = empty)
+  fit3 <- stats::lm(A ~ poly(Pci, 3), data = empty)
   
   # Iterative pruning ----
   dAIC <- stats::AIC(fit1) - min(stats::AIC(fit2), stats::AIC(fit3))
@@ -111,7 +148,7 @@ prepare_empty <- function(empty) {
     
   }
   
-  glue::glue("Final dataset contains {n} rows", n = nrow(empty)) %>%
+  glue::glue("Final dataset contains {n} rows\n", n = nrow(empty)) %>%
     crayon::blue() %>%
     message()
 

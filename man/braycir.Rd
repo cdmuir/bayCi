@@ -22,7 +22,7 @@ braycir(data, empty, chains = 1, iter = 2000, warmup = floor(iter/2),
 
 \item{cores}{Number of cores to use when executing the chains in parallel (defaults to 1). Use \code{\link[parallel]{detectCores}} to detect number of CPU cores on the current host.}
 
-\item{...}{Ignored.}
+\item{...}{Additional arguments passed to \code{\link[rstan]{stan}}.}
 }
 \value{
 An object of class \code{\link[=racirfit-class]{racirfit}}
