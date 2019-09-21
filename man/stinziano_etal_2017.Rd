@@ -13,14 +13,14 @@
 \item{plant_id}{plant id (A, B or C)}
 \item{curve_number}{ID of repeated curves}
 \item{curve_type}{RACiR (with range of CO2) or Standard}
+\item{A}{net CO2 assimilation rate (\eqn{\mu \text{mol}~\text{m}^{-2}~\text{s}^{-1}}{umol / m^2 / s})}
 \item{Ci}{intercellular CO2 concentration (ppm)}
-\item{Photo}{net CO2 assimilation rate (\deqn{\mu \text{mol}~\text{m}^{-2}~\text{s}^{-1}}{umol / m^2 / s})}
-\item{Tleaf}{leaf temperature (degrees Celsius)}
-\item{PARi}{irradiance (\deqn{\mu \text{mol~photons}~\text{m}^{-2}~\text{s}^{-1}}{umol photons / m^2 / s})}
-\item{E}{transpiration rate (\deqn{\text{mol}~\text{m}^{-2}~\text{s}^{-1}}{mol / m^2 / s})}
-\item{gs}{stomatal conductance to CO2 (\deqn{\text{mol}~\text{m}^{-2}~\text{s}^{-1}}{mol / m^2 / s})}
-\item{Cs}{CO2 concentration at sample IRGA (ppm)}
 \item{Cr}{CO2 concentration at reference IRGA (ppm)}
+\item{Cs}{CO2 concentration at sample IRGA (ppm)}
+\item{E}{transpiration rate (\eqn{\text{mol}~\text{m}^{-2}~\text{s}^{-1}}{mol / m^2 / s})}
+\item{gsc}{stomatal conductance to CO2 (\eqn{\text{mol}~\text{m}^{-2}~\text{s}^{-1}}{mol / m^2 / s})}
+\item{PARi}{irradiance (\eqn{\mu \text{mol~photons}~\text{m}^{-2}~\text{s}^{-1}}{umol photons / m^2 / s})}
+\item{Tleaf}{leaf temperature (degrees Celsius)}
 }}
 \source{
 \url{https://doi.org/10.1111/pce.12911}
@@ -34,6 +34,6 @@ stinziano_etal_2017_empty
 Example A-Ci curve dataset from Stinziano \emph{et al.} 2017
 }
 \references{
-Stinziano JR, PB Morgan, DJ Lynch, AJ Saathoff, DK McDermitt, DT Hanson. 2017. The rapid \emph{A-\eqn{C_i}} response: photosynthesis in the phenomic era. \emph{Plant, Cell & Environment} 40(8): 1256--1262.
+Stinziano JR, PB Morgan, DJ Lynch, AJ Saathoff, DK McDermitt, DT Hanson. 2017. The rapid \deqn{A-C_i}{A-Ci} response: photosynthesis in the phenomic era. \emph{Plant, Cell & Environment} 40(8): 1256--1262.
 }
 \keyword{datasets}

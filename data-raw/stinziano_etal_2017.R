@@ -13,8 +13,8 @@ stinziano_etal_2017 <- readxl::read_excel(
                 machine = stringr::str_extract(ID, "^LI[1-2]{1}"),
                 plant_id = stringr::str_replace(ID, "^LI[1-2]{1}(A|B|C)$", "\\1")
     ) %>%
-  dplyr::select(species, machine, plant_id, curve_number, curve_type, Ci, Photo,
-                Tleaf, PARi, E, gs, Cs, Cr, Pa)
+  dplyr::select(species, machine, plant_id, curve_number, curve_type, Ci, 
+                A = Photo, Tleaf, PARi, E, gsc = gs, Cs, Cr, Pa)
 
 usethis::use_data(stinziano_etal_2017, internal = FALSE, overwrite = TRUE, 
                   version = 3)
@@ -40,7 +40,7 @@ stinziano_etal_2017_empty <- readxl::read_excel(
   na = "-"
 ) %>%
   dplyr::filter(treatment == "Empty Chamber Correction for 500 to 0") %>%
-  dplyr::select(Ci, A)
+  dplyr::select(Ci, A, Tleaf, Pa)
 
 usethis::use_data(stinziano_etal_2017_empty, internal = FALSE, overwrite = TRUE, 
                   version = 3)

@@ -1,14 +1,16 @@
-#' Bayesian analysis of A-\eqn{Ci}{C_i} response curves using Stan
-#' 
-#' @param formula
-#' 
-#' @param data Data. Must inherit class \code{\link[=aci-class]{aci}}.
-#' 
-#' @export
-bayCi <- function(formula, data) {
-  
-  checkmate::assert_formula(formula)
-  checkmate::assert_class(data, "aci")
-  1
-  
-}
+#' \code{bayCi} package
+#'
+#' Bayesian Photosynthetic Response Curves Using Stan
+#'
+#' See the README on
+#' \href{https://github.com/cdmuir/bayCi}{GitHub}
+#'
+#' @docType package
+#' @name bayCi
+NULL
+
+## quiets concerns of R CMD check re: the .'s that appear in pipelines
+if(getRversion() >= "2.15.1")  utils::globalVariables(c("."))
+
+## quiets concerns of R CMD check re: units
+utils::globalVariables(c("m", "mol", "Pa", "s", "umol", "W"))

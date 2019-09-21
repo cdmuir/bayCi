@@ -12,6 +12,9 @@ read_aci(path)
 \description{
 Read LICOR files into R
 }
+\details{
+This function is not intended to read raw LICOR files. Instead, raw data should be tidied into a data.frame like structure with header and comments removed. There should be only one row with column heading. Each subsequent row should correspond to one obervation and each column to one variable.
+}
 \examples{
 
 library(bayCi)

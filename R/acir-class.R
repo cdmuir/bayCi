@@ -1,20 +1,20 @@
-#' S3 class 'aci'
-#' @exportClass aci
-#' @name aci-class
-#' @description 'aci' class objects are required for \code{\link{bayCi}}
+#' S3 class 'acir'
+#' @exportClass acir
+#' @name acir-class
+#' @description 'acir' class objects are required for \code{\link{baycir}}
 NULL
 
-#' @description - \code{new_aci} constructs a data.frame into an 'aci' object
-#' @rdname aci-class
+#' @description - \code{new_acir} constructs a data.frame into an 'acir' object
+#' @rdname acir-class
 #' 
-#' @param x A data.frame or \link[tibble:tibble]{tibble} to be constructed into 'aci' class or validated.
+#' @param x A \code{data.frame} or \code{\link[tibble:tibble]{tibble}} to be constructed into 'acir' class or validated.
 #' 
 #' @param id_cols A character string or vector of column names in \code{x} that are used to identify data (e.g. taxa, treatment, replicate, etc.). These will be converted to characters.  
 #' 
 #' @param covariate_cols A character string or vector of column names in \code{x} that are used to identify covariates (numeric or categorical). Factors will be converted to characters.  
 #' 
 #' @export
-new_aci <- function(x, id_cols = character(),
+new_acir <- function(x, id_cols = character(),
                     covariate_cols = character()) {
   
   checkmate::assert_data_frame(x)
@@ -31,12 +31,12 @@ new_aci <- function(x, id_cols = character(),
 
 }
 
-#' @description - \code{validate_aci} validates that object has correct values
-#' @rdname aci-class
+#' @description - \code{validate_acir} validates that object has correct values
+#' @rdname acir-class
 #' @export
-validate_aci <- function(x) {
+validate_acir <- function(x) {
   
-  checkmate::assert_class("aci")
+  checkmate::assert_class("acir")
   # set units
   #  - what to do about optional columns?
   #  - what to do about extra columns
@@ -46,13 +46,13 @@ validate_aci <- function(x) {
   
 }
 
-#' @description - \code{aci} user-friendly way to create 'aci' objects
-#' @rdname aci-class
+#' @description - \code{acir} user-friendly way to create 'acir' objects
+#' @rdname acir-class
 #' @export
-aci <- function(x) {
+acir <- function(x) {
   
   x %>%
-    new_aci() %>%
-    validate_aci()
+    new_acir() %>%
+    validate_acir()
   
 }

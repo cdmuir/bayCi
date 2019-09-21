@@ -7,7 +7,9 @@
 read_aci_file(file, ...)
 }
 \arguments{
-\item{file}{Character string with path to file
+\item{file}{Character string with path to file}
+
+\item{...}{?
 
 This function is not meant to be called directly. \code{read_aci} will have already checked that file exists and has valid extension.
 

@@ -2,37 +2,13 @@
 % Please edit documentation in R/baycir.R
 \name{baycir}
 \alias{baycir}
-\title{Fit a single RACiR curve}
+\title{Bayesian analysis of \deqn{A-C_i}{A-Ci} response curves using Stan}
 \usage{
-baycir(data, empty, chains = 1, iter = 2000, warmup = floor(iter/2),
-  thin = 1, cores = getOption("mc.cores", 1L), ...)
+baycir(data)
 }
 \arguments{
-\item{data}{An object of class \code{data.frame} containing data for all model variables.}
-
-\item{empty}{An object of class \code{data.frame} containing data from empty chamber to correct response data.}
-
-\item{chains}{Number of Markov chains (defaults to 1).}
-
-\item{iter}{Number of total iterations per chains (including warmup; defaults to 2000).}
-
-\item{warmup}{A positive integer specifying number of warmup (aka burnin) iterations. This also specifies the number of iterations used for stepsize adaptation, so warmup samples should not be used for inference. The number of warmup should not be larger than \code{iter} and the default is \code{iter / 2}.}
-
-\item{thin}{Thinning rate. Must be a positive integer. Set \code{thin > 1} to save memory and computation time if \code{iter} is large.}
-
-\item{cores}{Number of cores to use when executing the chains in parallel (defaults to 1). Use \code{\link[parallel]{detectCores}} to detect number of CPU cores on the current host.}
-
-\item{...}{Ignored.}
+\item{data}{Data. Must inherit class \code{\link[=acir-class]{acir}}.}
 }
 \description{
-Fit a single RACiR curve
-}
-\examples{
-
-library(bayCi)
-
-
-}
-\seealso{
-\code{\link[rstan]{stan}}
+Bayesian analysis of \deqn{A-C_i}{A-Ci} response curves using Stan
 }

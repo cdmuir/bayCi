@@ -35,6 +35,7 @@ read_aci <- function(path) {
 #' Read single file with one or more A-Ci curves
 #' 
 #' @param file Character string with path to file
+#' @param ... ?
 #' 
 #' This function is not meant to be called directly. `read_aci` will have already checked that file exists and has valid extension.
 #' 
