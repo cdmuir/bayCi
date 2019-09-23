@@ -17,14 +17,25 @@ new_racir <- function(.x) {
   # Check that .x is data.frame and has required variables ----
   checkmate::assert_data_frame(.x)
   .x %<>% tibble::as_tibble()
-  checkmate::assert_subset(c("A", "Pci"), colnames(.x))
+  checkmate::assert_subset(c("A", "Cs", "E", "gsc", "gtc", "Pa", "Pcr"), 
+                           colnames(.x))
   
   # Check that required variables have proper units ----
   checkmate::assert_class(dplyr::pull(.x, A), "units")
-  checkmate::assert_class(dplyr::pull(.x, Pci), "units")
+  checkmate::assert_class(dplyr::pull(.x, Cs), "units")
+  checkmate::assert_class(dplyr::pull(.x, E), "units")
+  checkmate::assert_class(dplyr::pull(.x, gsc), "units")
+  checkmate::assert_class(dplyr::pull(.x, gtc), "units")
+  checkmate::assert_class(dplyr::pull(.x, Pa), "units")
+  checkmate::assert_class(dplyr::pull(.x, Pcr), "units")
   .x %<>% dplyr::mutate(
     A = units::set_units(A, umol / m^2 / s),
-    Pci = units::set_units(Pci, Pa)
+    Cs = units::set_units(Cs, umol / mol),
+    E = units::set_units(E, mol / m^2 / s),
+    gsc = units::set_units(gsc, mol / m^2 / s),
+    gtc = units::set_units(gtc, mol / m^2 / s),
+    Pa = units::set_units(Pa, kPa),
+    Pcr = units::set_units(Pcr, Pa)
   )
 
   structure(
@@ -65,14 +76,47 @@ validate_racir <- function(.x) {
       row = which.max(.x$A)
     ))
   }
-  
-  checkmate::assert_numeric(.x$Pci, lower = 0, finite = TRUE, 
-                            any.missing = FALSE)
-  if (any(.x$Pci > units::set_units(300, Pa))) {
+
+  checkmate::assert_numeric(.x$Cs, lower = 0, finite = TRUE, any.missing = FALSE)
+  if (any(.x$Cs > units::set_units(3000, umol / mol))) {
     warning(glue::glue(
-      "Maximum Pci is {Pa} Pa (row {row}). This seems high. Check your units.", 
-      Pa = round(max(.x$Pci)), 
-      row = which.max(.x$Pci)
+      "Maximum Cs is {Cs} umol / mol (row {row}). This seems high. Check your units.", 
+      Cs = round(max(.x$Cs)), 
+      row = which.max(.x$Cs)
+    ))
+  }
+  
+  checkmate::assert_numeric(.x$E, lower = 0, finite = TRUE, any.missing = FALSE)
+  
+  checkmate::assert_numeric(.x$gsc, lower = 0, finite = TRUE, 
+                            any.missing = FALSE)
+  
+  if (any(.x$gsc > units::set_units(1, mol / m^2 / s))) {
+    warning(glue::glue(
+      "Maximum gsc is {gsc} mol / m^2 / s (row {row}). This seems high. Check your units.", 
+      gsc = round(max(.x$gsc)), 
+      row = which.max(.x$gsc)
+    ))
+  }
+  
+  checkmate::assert_numeric(.x$gtc, lower = 0, finite = TRUE, 
+                            any.missing = FALSE)
+  
+  if (any(.x$gtc > units::set_units(1, mol / m^2 / s))) {
+    warning(glue::glue(
+      "Maximum gtc is {gtc} mol / m^2 / s (row {row}). This seems high. Check your units.", 
+      gtc = round(max(.x$gtc)), 
+      row = which.max(.x$gtc)
+    ))
+  }
+
+  checkmate::assert_numeric(.x$Pcr, lower = 0, finite = TRUE, 
+                            any.missing = FALSE)
+  if (any(.x$Pcr > units::set_units(300, Pa))) {
+    warning(glue::glue(
+      "Maximum Pcr is {Pa} Pa (row {row}). This seems high. Check your units.", 
+      Pa = round(max(.x$Pcr)), 
+      row = which.max(.x$Pcr)
     ))
   }
   

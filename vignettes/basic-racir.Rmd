@@ -36,35 +36,36 @@ The `racir()` function will make a new `racir` object from a `data.frame` and va
 ```{r step1}
 
 df <- stinziano_etal_2017 %>%
-
-  # The dataset contains multiple RACiR curves, so we will filter out all but one
-  filter(curve_type == "RACiR 0 to 500", plant_id == "A") %>%
-
+  
   # Set units
   mutate(
-    Ci    = set_units( Ci,    umol / mol     ),
-    A     = set_units( A,     umol / m^2 / s ),
-    Tleaf = set_units( Tleaf, degreeC        ),
-    PARi  = set_units( PARi,  umol / m^2 / s ),
-    E     = set_units( E,     mol / m^2 / s  ),
-    gsc   = set_units( gsc,   mol / m^2 / s  ),
-    Cs    = set_units( Cs,    umol / mol     ),
-    Cr    = set_units( Cr,    umol / mol     ),
-    Pa    = set_units( Pa,    kPa            )
+    A     = set_units( A,         umol / m^2 / s ),
+    Tleaf = set_units( Tleaf,     degreeC        ),
+    Q     = set_units( Q,         umol / m^2 / s ),
+    E     = set_units( E,         mol / m^2 / s  ),
+    gsc   = set_units( gsw / 1.6, mol / m^2 / s  ),
+    gtc   = set_units( gtc,       mol / m^2 / s  ),
+    CO2_r = set_units( CO2_r,     umol / mol     ),
+    CO2_s = set_units( CO2_s,     umol / mol     ),
+    Pa    = set_units( Pa,        kPa            ),
+    Pci   = set_units( Pci,       Pa             )
   ) %>%
   
   # Following Sharkey et al. (2007), bayCi uses Pa units
   mutate(
-    Pci = set_units(Ci * Pa, Pa),
-    Pgsw = convert_conductance(gsc, P = Pa, Temp = Tleaf)$`umol/m^2/s/Pa`
-  )
+    Pcr = set_units(CO2_r * Pa, Pa),
+    Pcs = set_units(CO2_s * Pa, Pa),
+    Pgsc = convert_conductance(gsc, P = Pa, Temp = Tleaf)$`umol/m^2/s/Pa`
+  ) %>%
+  
+  select(A, Cs = CO2_s, E, gsc, gtc, Pa, Pcr)
 
 rcr <- racir(df)
 
 class(rcr)
 
 rcr %>%
-  select(A, Ci) %>%
+  select(A, Pcr) %>%
   mutate_if(is.numeric, signif, digits = 3) %>%
   head() %>%
   knitr::kable()
@@ -82,14 +83,9 @@ df <- stinziano_etal_2017_empty %>%
   # Set units
   mutate(
     A     = set_units( A,     umol / m^2 / s ),
-    Ci    = set_units( Ci,    umol / mol     ),
     Pa    = set_units( Pa,    kPa            ),
+    Pca   = set_units( Pca,   Pa             ),
     Tleaf = set_units( Tleaf, degreeC        )
-  ) %>%
-  
-  # Following Sharkey et al. (2007), bayCi uses Pa units
-  mutate(
-    Pci = set_units(Ci * Pa, Pa)
   )
 
 mty <- empty(df)

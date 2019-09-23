@@ -15,14 +15,14 @@ new_empty <- function(.x) {
   # Check that .x is data.frame and has required variables ----
   checkmate::assert_data_frame(.x)
   .x %<>% tibble::as_tibble()
-  checkmate::assert_subset(c("A", "Pci"), colnames(.x))
+  checkmate::assert_subset(c("A", "Pca"), colnames(.x))
   
   # Check that required variables have proper units ----
   checkmate::assert_class(dplyr::pull(.x, A), "units")
-  checkmate::assert_class(dplyr::pull(.x, Pci), "units")
+  checkmate::assert_class(dplyr::pull(.x, Pca), "units")
   .x %<>% dplyr::mutate(
     A = units::set_units(A, umol / m^2 / s),
-    Pci = units::set_units(Pci, Pa)
+    Pca = units::set_units(Pca, Pa)
   )
 
   structure(
@@ -64,13 +64,13 @@ validate_empty <- function(.x) {
     ))
   }
   
-  checkmate::assert_numeric(.x$Pci, lower = 0, finite = TRUE, 
+  checkmate::assert_numeric(.x$Pcr, lower = 0, finite = TRUE, 
                             any.missing = FALSE)
-  if (any(.x$Pci > units::set_units(300, Pa))) {
+  if (any(.x$Pcr > units::set_units(300, Pa))) {
     warning(glue::glue(
-      "Maximum Pci is {Pa} Pa (row {row}). This seems high. Check your units.", 
-      Pa = round(max(.x$Pci)), 
-      row = which.max(.x$Pci)
+      "Maximum Pcr is {Pa} Pa (row {row}). This seems high. Check your units.", 
+      Pa = round(max(.x$Pcr)), 
+      row = which.max(.x$Pcr)
     ))
   }
   

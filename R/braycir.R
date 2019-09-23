@@ -53,12 +53,21 @@ braycir <- function(
     dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
 
   # Compose data for Stan ----
+  data %<>% dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
   stan_data <- list(
     n_empty = nrow(empty),
     A_empty = empty$A,
-    Pci_empty = empty$Pci
+    Pca_empty = empty$Pca,
+    n_data = nrow(data),
+    A_data = data$A,
+    Cs_data = data$Cs,
+    E_data = data$E,
+    gsc_data = data$gsc,
+    gtc_data = data$gtc,
+    Pa_data = data$Pa,
+    Pca_data = data$Pca
   )
-  
+
   # Fit braycir model ----
   "\nFitting braycir curve in Stan" %>%
     crayon::bold() %>%
@@ -115,9 +124,9 @@ prepare_empty <- function(empty) {
   original_empty <- empty
   empty %<>% dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
   
-  fit1 <- stats::lm(A ~ poly(Pci, 1), data = empty)
-  fit2 <- stats::lm(A ~ poly(Pci, 2), data = empty)
-  fit3 <- stats::lm(A ~ poly(Pci, 3), data = empty)
+  fit1 <- stats::lm(A ~ poly(Pca, 1), data = empty)
+  fit2 <- stats::lm(A ~ poly(Pca, 2), data = empty)
+  fit3 <- stats::lm(A ~ poly(Pca, 3), data = empty)
   
   # Iterative pruning ----
   dAIC <- stats::AIC(fit1) - min(stats::AIC(fit2), stats::AIC(fit3))
