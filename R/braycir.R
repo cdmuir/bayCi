@@ -122,6 +122,8 @@ prepare_empty <- function(empty) {
  
   # Note: could add argument to try up to Nth order polynomial, rather than default to 3rd order.
   
+  # Note: I do not think this is account for irregular spacing once points are removed
+  
   # Messages ----
   "Preparing empty chamber response curve" %>%
     crayon::bold() %>%
@@ -134,13 +136,43 @@ prepare_empty <- function(empty) {
   
   # Initial fit ----
   empty %<>% dplyr::mutate(row = 1:nrow(.))
-  original_empty <- empty
-  empty %<>% dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
+  # original_empty <- empty
+  empty %<>% 
+    dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units) %>%
+    dplyr::mutate(Cr2 = Cr ^ 2, Cr3 = Cr ^ 3) %>%
+    dplyr::arrange(time)
   
-  fit1 <- stats::lm(A ~ poly(Cr, 1), data = empty)
-  fit2 <- stats::lm(A ~ poly(Cr, 2), data = empty)
-  fit3 <- stats::lm(A ~ poly(Cr, 3), data = empty)
+  # fit1 <- stats::lm(A ~ poly(Cr, 1), data = empty)
+  # fit2 <- stats::lm(A ~ poly(Cr, 2), data = empty)
+  # fit3 <- stats::lm(A ~ poly(Cr, 3), data = empty)
   
+  empty_ts <- zoo::zoo(dplyr::select(empty, -time), empty$time) 
+  suppressWarnings({
+    fit1 <- forecast::auto.arima(
+      y = empty_ts[, "A"], 
+      D = c(0, 0, 0), 
+      xreg = empty_ts[, c("Cr")], 
+      stepwise = FALSE, 
+      approximation = FALSE, 
+      max.p = 0, 
+      max.d = 0
+    )
+    # fit1$arma: AR order, MA order, seasonal AR, seasonal MA, period, degree of diff, seasonal degree of diff
+    # order argument is AR order, degree of diff, MA,
+    # therefore, order = fit1$arma[c(1, 6, 2)]
+    
+    fit2 <- stats::arima(
+      x = empty_ts[, "A"], 
+      order = fit1$arma[c(1, 6, 2)], 
+      xreg = empty_ts[, c("Cr", "Cr2")]
+    )
+    fit3 <- stats::arima(
+      x = empty_ts[, "A"], 
+      order = fit1$arma[c(1, 6, 2)], 
+      xreg = empty_ts[, c("Cr", "Cr2", "Cr3")]
+    )
+  })
+    
   # Iterative pruning ----
   dAIC <- stats::AIC(fit1) - min(stats::AIC(fit2), stats::AIC(fit3))
   dRow <- 1
@@ -149,22 +181,49 @@ prepare_empty <- function(empty) {
     crayon::blue() %>%
     message()
   
-  while(dAIC > 0 & dRow > 0) {
+  while(dAIC > 2 & dRow > 0) {
     
     nrow1 <- nrow(empty)
-    empty %<>%
-      dplyr::mutate(res2 = fit1$residuals ^ 2) %>%
-      dplyr::filter(res2 < max(res2))
+    empty %<>% dplyr::mutate(res2 = fit1$residuals ^ 2)
+    
+    if (any(sqrt(empty$res2) > 2 * sqrt(fit1$sigma2))) {
+      empty %<>% dplyr::filter(res2 < max(res2))
+      empty_ts <- zoo::zoo(dplyr::select(empty, -time), empty$time) 
+    } else {
+      empty_ts <- zoo::zoo(dplyr::select(empty, -time), empty$time) 
+    }
+    
     nrow2 <- nrow(empty)
     dRow <- nrow1 - nrow2
     
     if (dRow == 0) {
-      warning("In 'prepare_empty', algorithm stopped before complete linearization. Inspect results carefully.")
+      warning("In 'prepare_empty', algorithm stopped before complete linearization. This warning is not critical, but inspect results carefully.")
     }
     
-    fit1 %<>% stats::update()
-    fit2 %<>% stats::update()
-    fit3 %<>% stats::update()
+    # fit1 %<>% stats::update()
+    # fit2 %<>% stats::update()
+    # fit3 %<>% stats::update()
+    suppressWarnings({
+      fit1 <- forecast::auto.arima(
+        y = empty_ts[, "A"], 
+        D = c(0, 0, 0), 
+        xreg = empty_ts[, c("Cr")], 
+        stepwise = FALSE, 
+        approximation = FALSE, 
+        max.p = 0, 
+        max.d = 0
+      )
+      fit2 <- stats::arima(
+        x = empty_ts[, "A"], 
+        order = fit1$arma[c(1, 6, 2)], 
+        xreg = empty[, c("Cr", "Cr2")]
+      )
+      fit3 <- stats::arima(
+        x = empty_ts[, "A"], 
+        order = fit1$arma[c(1, 6, 2)], 
+        xreg = empty[, c("Cr", "Cr2", "Cr3")]
+      )
+    })
     
     dAIC <- stats::AIC(fit1) - min(stats::AIC(fit2), stats::AIC(fit3))
     
@@ -185,6 +244,7 @@ prepare_empty <- function(empty) {
   
   # Return ----
   # combined original and final or something...
+  # include some stats on the fit
   empty
   
 }

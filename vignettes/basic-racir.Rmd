@@ -84,8 +84,9 @@ df <- stinziano_etal_2017_empty %>%
   
   # Set units
   mutate(
-    A  = set_units( A,  umol / m^2 / s ),
-    Cr = set_units( Cr, umol / mol     )
+    A    = set_units( A,    umol / m^2 / s ),
+    Cr   = set_units( Cr,   umol / mol     ),
+    time = set_units( time, s              )
   )
 
 mty <- empty(df)

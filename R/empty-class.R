@@ -15,14 +15,16 @@ new_empty <- function(.x) {
   # Check that .x is data.frame and has required variables ----
   checkmate::assert_data_frame(.x)
   .x %<>% tibble::as_tibble()
-  checkmate::assert_subset(c("A", "Cr"), colnames(.x))
+  checkmate::assert_subset(c("A", "Cr", "time"), colnames(.x))
   
   # Check that required variables have proper units ----
   checkmate::assert_class(dplyr::pull(.x, A), "units")
   checkmate::assert_class(dplyr::pull(.x, Cr), "units")
+  checkmate::assert_class(dplyr::pull(.x, time), "units")
   .x %<>% dplyr::mutate(
     A = units::set_units(A, umol / m^2 / s),
-    Cr = units::set_units(Cr, umol / mol)
+    Cr = units::set_units(Cr, umol / mol),
+    time = units::set_units(time, s)
   )
 
   structure(
@@ -73,6 +75,9 @@ validate_empty <- function(.x) {
       row = which.max(.x$Cr)
     ))
   }
+  
+  checkmate::assert_numeric(.x$time, lower = 0, finite = TRUE, 
+                            any.missing = FALSE)
   
   .x
   

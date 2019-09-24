@@ -19,7 +19,7 @@ stinziano_etal_2017_empty <- readxl::read_excel(
   na = "-"
 ) %>%
   dplyr::filter(treatment == "Empty Chamber Correction for 500 to 0") %>%
-  dplyr::select(A, Cr = CO2_r)
+  dplyr::select(A, Cr = CO2_r, time)
 
 usethis::use_data(stinziano_etal_2017_empty, internal = FALSE, overwrite = TRUE, 
                   version = 3)
