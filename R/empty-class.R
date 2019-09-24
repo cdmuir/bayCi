@@ -15,14 +15,14 @@ new_empty <- function(.x) {
   # Check that .x is data.frame and has required variables ----
   checkmate::assert_data_frame(.x)
   .x %<>% tibble::as_tibble()
-  checkmate::assert_subset(c("A", "Pca"), colnames(.x))
+  checkmate::assert_subset(c("A", "Cr"), colnames(.x))
   
   # Check that required variables have proper units ----
   checkmate::assert_class(dplyr::pull(.x, A), "units")
-  checkmate::assert_class(dplyr::pull(.x, Pca), "units")
+  checkmate::assert_class(dplyr::pull(.x, Cr), "units")
   .x %<>% dplyr::mutate(
     A = units::set_units(A, umol / m^2 / s),
-    Pca = units::set_units(Pca, Pa)
+    Cr = units::set_units(Cr, umol / mol)
   )
 
   structure(
@@ -64,13 +64,13 @@ validate_empty <- function(.x) {
     ))
   }
   
-  checkmate::assert_numeric(.x$Pcr, lower = 0, finite = TRUE, 
+  checkmate::assert_numeric(.x$Cr, lower = 0, finite = TRUE, 
                             any.missing = FALSE)
-  if (any(.x$Pcr > units::set_units(300, Pa))) {
+  if (any(.x$Cr > units::set_units(3000, umol / mol))) {
     warning(glue::glue(
-      "Maximum Pcr is {Pa} Pa (row {row}). This seems high. Check your units.", 
-      Pa = round(max(.x$Pcr)), 
-      row = which.max(.x$Pcr)
+      "Maximum Cr is {ppm} umol / mol (row {row}). This seems high. Check your units.", 
+      ppm = round(max(.x$Cr)), 
+      row = which.max(.x$Cr)
     ))
   }
   

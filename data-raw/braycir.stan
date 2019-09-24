@@ -3,17 +3,19 @@ data {
   // Empty chamber data
   int<lower=0> n_empty;
   vector[n_empty] A_empty;
-  vector[n_empty] Pcr_empty;
+  vector[n_empty] Cr_empty;
   
   // RACiR data
   int<lower=0> n_data;
   vector[n_data] A_data;   // uncorrected A [umol / m^2 / s] 
+  vector[n_data] Cr_data;  // Reference CO2 [umol / mol] 
   vector[n_data] Cs_data;  // Sensor CO2 [umol / mol] 
   vector[n_data] E_data;   // Evaporation [mol / m^2 / s]
   vector[n_data] gsc_data; // Stomatal conductance to CO2 [mol / m^2 / s]
   vector[n_data] gtc_data; // Total conductance to CO2 [mol / m^2 / s]
   vector[n_data] Pa_data;  // Atmospheric pressure kPa
-  vector[n_data] Pcr_data; // Reference CO2 [Pa]
+  // vector[n_data] Pcr_data; // Reference CO2 [Pa]
+  
 }
 parameters {
   
@@ -23,37 +25,40 @@ parameters {
   real<lower=0> sigma_empty;
   
   // ACi curve parameters
-  real gamma_star;
-  real log_gmc;
-  real J;
-  real Km;
-  real log_Rd;
-  real Vcmax;
+  real<lower=0> gamma_star;
+  // real log_gmc;
+  real<lower=0> J;
+  real<lower=0> Km;
+  // real log_Rd;
+  real<lower=0> Rd;
+  real<lower=0> Vcmax;
   real<lower=0> sigma_data;
 
 }
-transformed parameters{
-
-  real gmc;
-  real Rd;
-  gmc = exp(log_gmc);
-  Rd = exp(Rd);
-
-}
+// transformed parameters{
+// 
+//   real gmc;
+//   real Rd;
+//   gmc = exp(log_gmc);
+//   Rd = exp(Rd);
+// 
+// }
 model {
   
   // DESCRIBE
-  vector[n_data] cJ;
-  vector[n_data] bJ;
-  vector[n_data] aJ;
-  vector[n_data] cV;
-  vector[n_data] bV;
-  vector[n_data] aV;
-  vector[n_data] mu;
-  vector[n_data] muV;
-  vector[n_data] muJ;
+  // real a;
+  // real bJ;
+  // real cJ;
+  // real bV;
+  // real cV;
+  vector[n_data] Am;
+  vector[n_data] Ac;
+  vector[n_data] Aj;
+
+  real theta;
 
   vector[n_data] A_corrected;
+  vector[n_data] Ci_corrected;
   vector[n_data] Pci_corrected;
   
   // Empty chamber priors
@@ -62,45 +67,73 @@ model {
   sigma_empty ~ cauchy(0, 1);
   
   // ACi curve priors
-  gamma_star ~ normal(3.743, 0.1);
-  log_gmc ~ normal(0, 4);
-  Km ~ normal(62.067, 1);
-  Vcmax ~ normal(30, 20);
-  J ~ normal(50, 20);
-  log_Rd ~ normal(1.39, 1.39);
+  gamma_star ~ normal(35.91, 0.1);
+  // log_gmc ~ normal(0, 4);
+  Km ~ normal(661.453, 1);
+  Vcmax ~ normal(117.5, 20);
+  J ~ normal(224.4, 20);
+  // log_Rd ~ normal(0, 1);
+  Rd ~ normal(0, 10);
   sigma_data ~ cauchy(0, 1);
 
   // Correct A_data and Pci_data (NEED TO CHECK EQUATIONS)
-  A_corrected = A_data - (b0 + b1 * Pcr_data);
+  A_corrected = A_data - (b0 + b1 * Cr_data);
   
+  theta= 0.9999;
+
   // NEED TO CHECK EQUATIONS
   for (i in 1:n_data) {
 
     // Eq. C-16 (page C-11) of LI6800 manual
     // Converted to Pa by multiplying by (Pa_data / 1000)
     // 
-    Pci_corrected[i] = (Pa_data[i] / 1000) *
-      ((gtc_data[i] - E_data[i] / 2) * Cs_data[i] - A_corrected[i]) /
+    // Pci_corrected[i] = (Pa_data[i] / 1000) *
+    //   ((gtc_data[i] - E_data[i] / 2) * Cs_data[i] - A_corrected[i]) /
+    //   (gtc_data[i] + E_data[i] / 2);
+    Ci_corrected[i] = ((gtc_data[i] - E_data[i] / 2) *
+      Cs_data[i] - A_corrected[i]) /
       (gtc_data[i] + E_data[i] / 2);
-
-    cJ[i] = Rd * (Pci_corrected[i] + 2 * gamma_star) -
-      J / 4 * (Pci_corrected[i] - gamma_star);
-    bJ[i] = (J / 4 - Rd) / gmc + Pci_corrected[i] + 2 * gamma_star;
-    aJ[i] = -1 / gmc;
-
-    cV[i] = Rd * (Pci_corrected[i] + Km) -
-      Vcmax * (Pci_corrected[i] - gamma_star);
-    bV[i] = (Vcmax - Rd) / gmc + Pci_corrected[i] + Km;
-    aV[i] = -1 / gmc;
-
-    muV[i] = (sqrt(bV[i]^2 - 4 * aV[i] * cV[i]) - bV[i])/(2 * aV[i]);
-    muJ[i] = (sqrt(bJ[i]^2 - 4 * aJ[i] * cJ[i]) - bJ[i])/(2 * aJ[i]);
-    mu[i] = fmin(muV[i], muJ[i]);
+    
+    // Is this necessary?
+    if (Ci_corrected[i] <= gamma_star) Ci_corrected[i] = gamma_star;
+    
+    // Infinite g_mc
+    Ac[i] = Vcmax * (Ci_corrected[i] - gamma_star)/(Ci_corrected[i] + Km);
+    Aj[i] = (J / 4) * (Ci_corrected[i] - gamma_star)/(Ci_corrected[i] + 2 * gamma_star);
+    
+    // Estimate g_mc
+    // a = -1 / gmc;
+    // bJ = (J / 4 - Rd) / gmc + Ci_corrected[i] + 2 * gamma_star;
+    // cJ = Rd * (Ci_corrected[i] + 2 * gamma_star) -
+    //   J / 4 * (Ci_corrected[i] - gamma_star);
+    // 
+    // bV = (Vcmax - Rd) / gmc + Ci_corrected[i] + Km;
+    // cV = Rd * (Ci_corrected[i] + Km) -
+    //   Vcmax * (Ci_corrected[i] - gamma_star);
+    // 
+    // Ac[i] = (sqrt(bV^2 - 4 * a * cV) - bV) / (2 * a) + Rd;
+    // Aj[i] = (sqrt(bJ^2 - 4 * a * cJ) - bJ) / (2 * a) + Rd;
+    
+    Am[i] = (Ac[i] + Aj[i] - sqrt((Ac[i] + Aj[i]) ^ 2) - 4 * theta * Ac[i] * Aj[i]) / (2 * theta) - Rd;
 
   }
 
   // Likelihood
-  A_empty ~ normal(b0 + b1 * Pcr_empty, sigma_empty);
-  A_corrected ~ normal(mu , sigma_data);
+  A_empty ~ normal(b0 + b1 * Cr_empty, sigma_empty);
+  A_corrected ~ normal(Am , sigma_data);
   
+}
+generated quantities {
+  
+  vector[n_data] A_corrected;
+  vector[n_data] Ci_corrected;
+
+  A_corrected = A_data - (b0 + b1 * Cr_data);
+    
+  for (i in 1:n_data) {
+    Ci_corrected[i] = ((gtc_data[i] - E_data[i] / 2) * 
+      Cs_data[i] - A_corrected[i]) /
+      (gtc_data[i] + E_data[i] / 2);
+  }
+
 }

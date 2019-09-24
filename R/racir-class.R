@@ -17,25 +17,25 @@ new_racir <- function(.x) {
   # Check that .x is data.frame and has required variables ----
   checkmate::assert_data_frame(.x)
   .x %<>% tibble::as_tibble()
-  checkmate::assert_subset(c("A", "Cs", "E", "gsc", "gtc", "Pa", "Pcr"), 
+  checkmate::assert_subset(c("A", "Cr", "Cs", "E", "gsc", "gtc", "Pa"), 
                            colnames(.x))
   
   # Check that required variables have proper units ----
   checkmate::assert_class(dplyr::pull(.x, A), "units")
+  checkmate::assert_class(dplyr::pull(.x, Cr), "units")
   checkmate::assert_class(dplyr::pull(.x, Cs), "units")
   checkmate::assert_class(dplyr::pull(.x, E), "units")
   checkmate::assert_class(dplyr::pull(.x, gsc), "units")
   checkmate::assert_class(dplyr::pull(.x, gtc), "units")
   checkmate::assert_class(dplyr::pull(.x, Pa), "units")
-  checkmate::assert_class(dplyr::pull(.x, Pcr), "units")
   .x %<>% dplyr::mutate(
     A = units::set_units(A, umol / m^2 / s),
+    Cr = units::set_units(Cr, umol / mol),
     Cs = units::set_units(Cs, umol / mol),
     E = units::set_units(E, mol / m^2 / s),
     gsc = units::set_units(gsc, mol / m^2 / s),
     gtc = units::set_units(gtc, mol / m^2 / s),
-    Pa = units::set_units(Pa, kPa),
-    Pcr = units::set_units(Pcr, Pa)
+    Pa = units::set_units(Pa, kPa)
   )
 
   structure(
@@ -77,6 +77,15 @@ validate_racir <- function(.x) {
     ))
   }
 
+  checkmate::assert_numeric(.x$Cr, lower = 0, finite = TRUE, any.missing = FALSE)
+  if (any(.x$Cr > units::set_units(3000, umol / mol))) {
+    warning(glue::glue(
+      "Maximum Cr is {Cr} umol / mol (row {row}). This seems high. Check your units.", 
+      Cr = round(max(.x$Cr)), 
+      row = which.max(.x$Cr)
+    ))
+  }
+
   checkmate::assert_numeric(.x$Cs, lower = 0, finite = TRUE, any.missing = FALSE)
   if (any(.x$Cs > units::set_units(3000, umol / mol))) {
     warning(glue::glue(
@@ -110,16 +119,6 @@ validate_racir <- function(.x) {
     ))
   }
 
-  checkmate::assert_numeric(.x$Pcr, lower = 0, finite = TRUE, 
-                            any.missing = FALSE)
-  if (any(.x$Pcr > units::set_units(300, Pa))) {
-    warning(glue::glue(
-      "Maximum Pcr is {Pa} Pa (row {row}). This seems high. Check your units.", 
-      Pa = round(max(.x$Pcr)), 
-      row = which.max(.x$Pcr)
-    ))
-  }
-  
   .x
   
 }

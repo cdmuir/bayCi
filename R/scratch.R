@@ -1,9 +1,12 @@
 # library(ggplot2)
-data <- rcr
+# library(magrittr)
+# data <- rcr %>%
+#   filter(Cr > set_units(10, umol / mol), Cr < set_units(480, umol / mol))
+# with(data, plot(Cr, A))
 # empty <- mty
 # 
-# empty %<>% 
-#   bayCi:::prepare_empty() %>% 
+# empty %<>%
+#   bayCi:::prepare_empty() %>%
 #   dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
 # 
 # # Compose data for Stan ----
@@ -11,9 +14,11 @@ data <- rcr
 # stan_data <- list(
 #   n_empty = nrow(empty),
 #   A_empty = empty$A,
-#   Pca_empty = empty$Pca,
+#   Cr_empty = empty$Cr,
+#   
 #   n_data = nrow(data),
 #   A_data = data$A,
+#   Cr_data = data$Cr,
 #   Cs_data = data$Cs,
 #   E_data = data$E,
 #   gsc_data = data$gsc,
@@ -22,34 +27,66 @@ data <- rcr
 #   Pcr_data = data$Pcr
 # )
 # 
-# # Remove This {
-# fit <- rstan::stan(
-#   file = "data-raw/braycir.stan",
+# library(rstan)
+# braycirmod <- rstan::stan_model(file = "data-raw/braycir.stan", model_name = "braycir")
+# fit <- rstan::sampling(
+#   object = braycirmod,
 #   data = stan_data,
-#   chains = 1)
-# # }
+#   iter = 2e4,
+#   chains = 1,
+#   init = list(list(
+#     gamma_star = 35.91,
+#     Km = 661.453,
+#     Vcmax = 117.5,
+#     J = 224.4,
+#     Rd = 1
+#   )), 
+#   verbose = TRUE)
 # 
-# summary(fit)
-# # Y = -12.28488679 + 0.07548637 * Pca
-# ggplot(empty, aes(Pca, A)) +
-#   geom_point() +
-#   geom_abline(slope = 0.07548637, intercept = -12.28488679) +
-#   theme_bw()
-# 
-# data %<>% mutate(
-#   A_corrected = A - (-12.28488679 + 0.07548637 * Pcr),
-#   Ci_corrected = ((gtc - E / 2) * Cs - A_corrected) / (gtc + E / 2)
+# summary(fit, pars = c("Rd"))
+# fit <- stan(
+#   file = "data-raw/braycir.stan", 
+#   model_name = "braycir",
+#   data = stan_data,
+#   chains = 1,
+#   init = list(list(
+#     gamma_star = 35.91,
+#     Km = 661.453,
+#     Vcmax = 117.5,
+#     J = 224.4,
+#     Rd = -0.5
+#   )), 
+#   verbose = TRUE
 # )
 # 
-# gp <- data %>%
-#   select(Pcr, A, A_corrected) %>%
-#   tidyr::gather(key, A, -Pcr) %>%
-#   filter(Pcr > 1, Pcr < 40)  %>%
-#   ggplot(aes(Pcr, A, color = key)) +
+# summary(fit, pars = c("gamma_star", "J", "Km", "Rd", "Vcmax", "sigma_data"))
+# library(tidyverse)
+# s <- summary(fit, pars = c("A_corrected", "Ci_corrected"))
+# tmp <- s$summary[, "mean"] %>%
+#   as.data.frame() %>%
+#   rownames_to_column() %>%
+#   mutate(
+#     trait = str_replace(rowname, "^(A|Ci)_corrected\\[[0-9]+\\]$", "\\1"),
+#     i = str_replace(rowname, "^(A|Ci)_corrected\\[([0-9]+)\\]$", "\\2"),
+#   ) %>%
+#   select(-rowname) %>%
+#   rename(value = .data$`.`) %>%
+#   spread(trait, value) %>%
+#   filter(Ci > 30, Ci < 319)
+# 
+# gp <- ggplot(tmp, aes(Ci, A)) +
 #   geom_point() +
 #   theme_bw()
 # 
 # gp
+# 
+# library(plantecophys)
+# tmp %<>%
+#   mutate(PPFD = 1000, Tleaf = 25)
+# 
+# fit <- fitaci(tmp, varnames = list(ALEAF = "A", Ci = "Ci", PPFD = "PPFD", Tleaf = "Tleaf"),  Tcorrect = FALSE, Patm = 84, PPFD = 1000, Tleaf = 25)
+# fit
+
 # 
 # library(photosynthesis)
 # data$Pgsc <- drop_units(convert_conductance(set_units(data$gsc, mol/m^2/s), P = set_units(data$Pa, kPa), Temp = set_units(25, degreeC))$`umol/m^2/s/Pa`)
@@ -78,9 +115,7 @@ data <- rcr
 #     data = mutate(ph, Pcr = drop_units(C_air), A = drop_units(A), key = "sim")
 #   )
 # 
-# library(plantecophys)
-# data %<>% 
-#   mutate(PPFD = 1000, Tleaf = 25) %>%
-#   filter(Pcr > 1, Pcr < 40)
-# fit <- fitaci(data, varnames = list(ALEAF = "A_corrected", Ci = "Ci_corrected", PPFD = "PPFD", Tleaf = "Tleaf"),  Tcorrect = FALSE, Patm = 84, PPFD = 1000, Tleaf = 25)
-# fit
+
+# plantecophys::fitaci
+# plantecophys:::acifun_wrap
+# plantecophys:::Photosyn

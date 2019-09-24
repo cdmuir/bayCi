@@ -58,7 +58,9 @@ df <- stinziano_etal_2017 %>%
     Pgsc = convert_conductance(gsc, P = Pa, Temp = Tleaf)$`umol/m^2/s/Pa`
   ) %>%
   
-  select(A, Cs = CO2_s, E, gsc, gtc, Pa, Pcr)
+  select(A, Cr = CO2_r, Cs = CO2_s, E, gsc, gtc, Pa, Pcr) %>%
+  
+  filter(Cr > set_units(10, umol / mol), Cr < set_units(480, umol / mol))
 
 rcr <- racir(df)
 
@@ -82,10 +84,8 @@ df <- stinziano_etal_2017_empty %>%
   
   # Set units
   mutate(
-    A     = set_units( A,     umol / m^2 / s ),
-    Pa    = set_units( Pa,    kPa            ),
-    Pca   = set_units( Pca,   Pa             ),
-    Tleaf = set_units( Tleaf, degreeC        )
+    A  = set_units( A,  umol / m^2 / s ),
+    Cr = set_units( Cr, umol / mol     )
   )
 
 mty <- empty(df)

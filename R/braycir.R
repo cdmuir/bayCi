@@ -57,15 +57,15 @@ braycir <- function(
   stan_data <- list(
     n_empty = nrow(empty),
     A_empty = empty$A,
-    Pca_empty = empty$Pca,
+    Cr_empty = empty$Cr,
     n_data = nrow(data),
     A_data = data$A,
+    Cr_data = data$Cr,
     Cs_data = data$Cs,
     E_data = data$E,
     gsc_data = data$gsc,
     gtc_data = data$gtc,
-    Pa_data = data$Pa,
-    Pca_data = data$Pca
+    Pa_data = data$Pa
   )
 
   # Fit braycir model ----
@@ -78,15 +78,28 @@ braycir <- function(
     crayon::blue() %>%
     message()
   
-  fit <- rstan::stan(
-    model_name = "braycir",
-    model_code = braycir_model,
+  braycirmod <- rstan::stan_model(model_code = braycir_model, 
+                                  model_name = "braycir")
+  
+  "Sampling..." %>%
+    crayon::blue() %>%
+    message()
+  
+  fit <- rstan::sampling(
+    object = braycirmod,
     data = stan_data,
     chains = chains,
     iter = iter,
     warmup = warmup,
     thin = thin,
     cores = cores, 
+    init = list(list(
+      gamma_star = 35.91,
+      Km = 661.453,
+      Vcmax = 117.5,
+      J = 224.4,
+      Rd = 1
+    )),
     ...
   )
   
@@ -124,9 +137,9 @@ prepare_empty <- function(empty) {
   original_empty <- empty
   empty %<>% dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
   
-  fit1 <- stats::lm(A ~ poly(Pca, 1), data = empty)
-  fit2 <- stats::lm(A ~ poly(Pca, 2), data = empty)
-  fit3 <- stats::lm(A ~ poly(Pca, 3), data = empty)
+  fit1 <- stats::lm(A ~ poly(Cr, 1), data = empty)
+  fit2 <- stats::lm(A ~ poly(Cr, 2), data = empty)
+  fit3 <- stats::lm(A ~ poly(Cr, 3), data = empty)
   
   # Iterative pruning ----
   dAIC <- stats::AIC(fit1) - min(stats::AIC(fit2), stats::AIC(fit3))
