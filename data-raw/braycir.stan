@@ -2,7 +2,6 @@ data {
   
   // Empty chamber data
   int<lower=0> n_empty;
-  int<lower=1> Q_empty;
   vector[n_empty] A_empty;
   vector[n_empty] Cr_empty;
   
@@ -24,7 +23,7 @@ parameters {
   real b0;
   real b1;
   real<lower=0> sigma_empty;
-  vector[Q_empty] theta; // lag coefficients
+  real<lower=-1, upper=1> phi; // residual autocorrelation
   
   // ACi curve parameters
   // real<lower=0> gamma_star;
@@ -43,17 +42,23 @@ transformed parameters{
   // real Rd;
   // gmc = exp(log_gmc);
   // Rd = exp(Rd);
-  vector[n_empty] epsilon; // error terms
-  for (t in 1:n_empty) {
-    epsilon[t] = A_empty[t] - (b0 + b1 * Cr_empty[t]);
-    for (q in 1:min(t - 1, Q_empty))
-      epsilon[t] = epsilon[t] - theta[q] * epsilon[t - q];
+  // Regression with correlated residuals, adopted from:
+  // https://github.com/nwfsc-timeseries/atsar
+  vector[n_empty] epsilon;
+  vector[n_empty] pred;
+  real sigma_cor;
+  pred[1] = b0 + b1 * Cr_empty[1];
+  epsilon[1] = A_empty[1] - pred[1];
+  for(i in 2:n_empty) {
+    pred[i] = b0 + b1 * Cr_empty[i];
+    epsilon[i] = (A_empty[i] - pred[i]) - phi * epsilon[i - 1];
   }
+  // Var = sigma2 * (1-rho^2)
+  sigma_cor = sqrt(sigma_empty * sigma_empty * (1 - phi * phi));
+  
 }
 model {
   
-  vector[n_empty] eta;
-
   // DESCRIBE
   // real a;
   // real bJ;
@@ -73,6 +78,7 @@ model {
   // Empty chamber priors
   b0 ~ normal(0, 1);
   b1 ~ normal(0, 10);
+  phi ~ normal(0, 1);
   sigma_empty ~ cauchy(0, 1);
   
   // ACi curve priors
@@ -90,12 +96,6 @@ model {
   
   // theta= 0.9999;
 
-  for (t in 1:n_empty) {
-    eta[t] = b0 + b1 * Cr_empty[t];
-    for (q in 1:min(t - 1, Q_empty))
-      eta[t] = eta[t] + theta[q] * epsilon[t - q];
-  }
-  
   // NEED TO CHECK EQUATIONS
   // for (i in 1:n_data) {
 
@@ -134,7 +134,7 @@ model {
   // }
 
   // Likelihood
-  A_empty ~ normal(eta, sigma_empty);
+  A_empty ~ normal(pred, sigma_cor);
   // A_corrected ~ normal(Am , sigma_data);
   
 }
