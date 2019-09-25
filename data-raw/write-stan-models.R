@@ -1,3 +1,3 @@
-braycir_model <- readr::read_file("data-raw/braycir.stan")
+braycir_template <- readr::read_file("data-raw/braycir_template.stan")
 
-usethis::use_data(braycir_model, internal = TRUE, overwrite = TRUE, version = 3)
+usethis::use_data(braycir_template, internal = TRUE, overwrite = TRUE, version = 3)

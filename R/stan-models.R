@@ -4,4 +4,4 @@
 #'
 #' @format \strong{Stan} files
 #' 
-"braycir_model"
+"braycir_template"

@@ -56,9 +56,18 @@ braycir <- function(
   # Compose data for Stan ----
   data %<>% dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
   stan_data <- list(
+    
+    # Empty chamber data
     n_empty = nrow(empty),
     A_empty = empty$A,
     Cr_empty = empty$Cr,
+    
+    # Fixed parameters
+    gamma_star = 35.91,
+    Km = 661.453,
+    theta = 0.9999,
+    
+    # RACiR data
     n_data = nrow(data),
     A_data = data$A,
     Cr_data = data$Cr,
@@ -75,6 +84,13 @@ braycir <- function(
     crayon::blue() %>%
     message()
 
+  "Finding parameter constraints" %>%
+    crayon::blue() %>%
+    message()
+
+  braycir_model <- write_braycir_model(data, empty, stan_data$gamma_star,
+                                       stan_data$Km)  
+  
   "Compiling model (this takes a minute)" %>%
     crayon::blue() %>%
     message()
@@ -94,13 +110,6 @@ braycir <- function(
     warmup = warmup,
     thin = thin,
     cores = cores, 
-    init = list(list(
-      gamma_star = 35.91,
-      Km = 661.453,
-      Vcmax = 117.5,
-      J = 224.4,
-      Rd = 1
-    )),
     ...
   )
   
