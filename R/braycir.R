@@ -133,118 +133,173 @@ prepare_empty <- function(empty) {
   glue::glue("Original dataset contains {n} rows", n = nrow(empty)) %>%
     crayon::blue() %>%
     message()
-  
-  # Initial fit ----
+
   empty %<>% dplyr::mutate(row = 1:nrow(.))
-  # original_empty <- empty
-  empty %<>% 
+  original_empty <- empty
+  
+  # 1. Remove extreme values near end and beginning of curve ----
+  # q <- stats::quantile(empty$Cr, probs = c(0.25, 0.75))
+  # 
+  # empty1 <- empty %>%
+  #   dplyr::filter(Cr > q[1], Cr < q[2]) %>%
+  #   dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
+  # 
+  # fit <- stats::lm(A ~ Cr, data = empty1)
+  # 
+  # empty %<>% dplyr::mutate(
+  #   yhat = stats::coef(fit)["(Intercept)"] + 
+  #     stats::coef(fit)["Cr"] * units::drop_units(Cr),
+  #   residual = yhat - units::drop_units(A),
+  #   outlier = abs(residual) > 5 * stats::sigma(fit)
+  # ) %>%
+  #   dplyr::filter(!outlier) %>%
+  #   dplyr::select(row, time, Cr, A)
+  
+  empty1 <- empty %>%
+    dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
+  
+  fit <- robustbase::lmrob(A ~ Cr, data = empty1)
+
+  empty %<>% dplyr::mutate(
+    rweight = fit$rweights,
+    outlier = rweight < 0.01
+  ) %>%
+    dplyr::filter(!outlier) %>%
+    dplyr::select(row, time, Cr, A)
+  
+  # 2. Time series outlier detection ----
+  empty2 <- empty %>%
+    dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
+  A_ts <- stats::ts(dplyr::select(empty2, A)) 
+  o <- forecast::tsoutliers(A_ts, iterate = 10)
+  
+  if (length(o$index) > 0) {
+    empty <- empty[-o$index, c("row", "time", "Cr", "A")]
+  }
+  
+  # 3. Refine linear portion using time-series analysis ----
+  ## Initial time-series fit ----
+  empty3 <- empty %>% 
     dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units) %>%
     dplyr::mutate(Cr2 = Cr ^ 2, Cr3 = Cr ^ 3) %>%
     dplyr::arrange(time)
   
-  # fit1 <- stats::lm(A ~ poly(Cr, 1), data = empty)
-  # fit2 <- stats::lm(A ~ poly(Cr, 2), data = empty)
-  # fit3 <- stats::lm(A ~ poly(Cr, 3), data = empty)
-  
-  empty_ts <- zoo::zoo(dplyr::select(empty, -time), empty$time) 
-  suppressWarnings({
-    fit1 <- forecast::auto.arima(
-      y = empty_ts[, "A"], 
-      D = c(0, 0, 0), 
-      xreg = empty_ts[, c("Cr")], 
-      stepwise = FALSE, 
-      approximation = FALSE, 
-      max.p = 0, 
-      max.d = 0
-    )
-    # fit1$arma: AR order, MA order, seasonal AR, seasonal MA, period, degree of diff, seasonal degree of diff
-    # order argument is AR order, degree of diff, MA,
-    # therefore, order = fit1$arma[c(1, 6, 2)]
-    
-    fit2 <- stats::arima(
-      x = empty_ts[, "A"], 
-      order = fit1$arma[c(1, 6, 2)], 
-      xreg = empty_ts[, c("Cr", "Cr2")]
-    )
-    fit3 <- stats::arima(
-      x = empty_ts[, "A"], 
-      order = fit1$arma[c(1, 6, 2)], 
-      xreg = empty_ts[, c("Cr", "Cr2", "Cr3")]
-    )
-  })
-    
-  # Iterative pruning ----
-  dAIC <- stats::AIC(fit1) - min(stats::AIC(fit2), stats::AIC(fit3))
-  dRow <- 1
-  
-  "Iteratively pruning nonlinear portions of the curve..." %>%
-    crayon::blue() %>%
-    message()
-  
-  while(dAIC > 2 & dRow > 0) {
-    
-    nrow1 <- nrow(empty)
-    empty %<>% dplyr::mutate(res2 = fit1$residuals ^ 2)
-    
-    if (any(sqrt(empty$res2) > 2 * sqrt(fit1$sigma2))) {
-      empty %<>% dplyr::filter(res2 < max(res2))
-      empty_ts <- zoo::zoo(dplyr::select(empty, -time), empty$time) 
-    } else {
-      empty_ts <- zoo::zoo(dplyr::select(empty, -time), empty$time) 
-    }
-    
-    nrow2 <- nrow(empty)
-    dRow <- nrow1 - nrow2
-    
-    if (dRow == 0) {
-      warning("In 'prepare_empty', algorithm stopped before complete linearization. This warning is not critical, but inspect results carefully.")
-    }
-    
-    # fit1 %<>% stats::update()
-    # fit2 %<>% stats::update()
-    # fit3 %<>% stats::update()
-    suppressWarnings({
-      fit1 <- forecast::auto.arima(
-        y = empty_ts[, "A"], 
-        D = c(0, 0, 0), 
-        xreg = empty_ts[, c("Cr")], 
-        stepwise = FALSE, 
-        approximation = FALSE, 
-        max.p = 0, 
-        max.d = 0
-      )
-      fit2 <- stats::arima(
-        x = empty_ts[, "A"], 
-        order = fit1$arma[c(1, 6, 2)], 
-        xreg = empty[, c("Cr", "Cr2")]
-      )
-      fit3 <- stats::arima(
-        x = empty_ts[, "A"], 
-        order = fit1$arma[c(1, 6, 2)], 
-        xreg = empty[, c("Cr", "Cr2", "Cr3")]
-      )
-    })
-    
-    dAIC <- stats::AIC(fit1) - min(stats::AIC(fit2), stats::AIC(fit3))
-    
-  }
-  
-  glue::glue("Final dataset contains {n} rows\n", n = nrow(empty)) %>%
+  # empty_ts <- zoo::zoo(dplyr::select(empty3, -time), empty3$time) 
+  # 
+  # suppressWarnings({
+  #   fit1 <- forecast::auto.arima(
+  #     y = empty_ts[, "A"], 
+  #     D = c(0, 0, 0), 
+  #     xreg = empty_ts[, c("Cr")], 
+  #     stepwise = FALSE, 
+  #     approximation = FALSE, 
+  #     max.p = 0, 
+  #     max.d = 0,
+  #     max.q = 10
+  #   )
+  #   
+  #   # fit1$arma: AR order, MA order, seasonal AR, seasonal MA, period, degree of diff, seasonal degree of diff
+  #   # order argument is AR order, degree of diff, MA,
+  #   # therefore, order = fit1$arma[c(1, 6, 2)]
+  #   
+  #   fit2 <- stats::arima(
+  #     x = empty_ts[, "A"], 
+  #     order = fit1$arma[c(1, 6, 2)], 
+  #     xreg = empty_ts[, c("Cr", "Cr2")]
+  #   )
+  #   fit3 <- stats::arima(
+  #     x = empty_ts[, "A"], 
+  #     order = fit1$arma[c(1, 6, 2)], 
+  #     xreg = empty_ts[, c("Cr", "Cr2", "Cr3")]
+  #   )
+  # })
+  #   
+  # # q <- fit1$arma[2]
+  # 
+  # ## Iterative pruning ----
+  # dAIC <- stats::AIC(fit1) - min(stats::AIC(fit2), stats::AIC(fit3))
+  # dRow <- 1
+  # 
+  # "Iteratively pruning nonlinear portions of the curve..." %>%
+  #   crayon::blue() %>%
+  #   message()
+  # 
+  # while(dAIC > 2 & dRow > 0) {
+  #   
+  #   nrow1 <- nrow(empty3)
+  #   bestmod <- c("fit2", "fit3")[which.min(c(stats::AIC(fit2), stats::AIC(fit3)))]
+  #   
+  #   empty3$relfit <- empty3 %>% 
+  #     dplyr::mutate(
+  #       fit1 = fit1$residuals ^ 2,
+  #       fit2 = fit2$residuals ^ 2,
+  #       fit3 = fit3$residuals ^ 2
+  #     ) %>%
+  #     dplyr::select_at(dplyr::vars("fit1", bestmod)) %>%
+  #     magrittr::set_colnames(c("m1", "m2")) %>%
+  #     dplyr::transmute(relfit = abs(m1 / m2)) %>%
+  #     dplyr::pull(relfit)
+  #   
+  #   empty3 %<>% dplyr::filter(relfit < max(relfit))
+  #   
+  #   nrow2 <- nrow(empty3)
+  #   dRow <- nrow1 - nrow2
+  #   
+  #   if (dRow == 0) {
+  #     message("In 'prepare_empty', algorithm stopped before complete linearization. This is not necessarily a problem, but inspect results carefully.")
+  #   }
+  #   
+  #   suppressWarnings({
+  #     q <- find_q(A ~ poly(Cr, 1), data = empty3, max.q = 10)
+  #     fit1 <- nlme::gls(A ~ poly(Cr, 1), data = empty3, correlation = nlme::corARMA(p = 0, q = 5))
+  #     fit2 <- nlme::gls(A ~ poly(Cr, 2), data = empty3, correlation = nlme::corARMA(p = 0, q = 5))
+  #     fit3 <- nlme::gls(A ~ poly(Cr, 3), data = empty3, correlation = nlme::corARMA(p = 0, q = 5))
+  #   })
+  #   
+  #   dAIC <- stats::AIC(fit1) - min(stats::AIC(fit2), stats::AIC(fit3))
+  #   
+  # }
+
+  glue::glue("Final dataset contains {n} rows\n", n = nrow(empty3)) %>%
     crayon::blue() %>%
     message()
 
-  # Inspect results ----
-  if (nrow(empty) < 10) {
-    if (nrow(empty) < 2) {
+  # 3. Inspect results and provide feedback ----
+  if (nrow(empty3) < 10) {
+    if (nrow(empty3) < 2) {
       stop("'prepare_empty' did not find a linear portion of the calibration curve.")
     } else {
       warning("In 'prepare_empty', fewer than 10 data points remain in empty chamber correction curve. Inspect results carefully.")
     }
   }
   
-  # Return ----
-  # combined original and final or something...
+  # 4. Return ----
   # include some stats on the fit
-  empty
+  ret <- empty3 %>%
+    dplyr::mutate(use = TRUE) %>%
+    dplyr::select(row, use) %>%
+    dplyr::full_join(original_empty, by = "row") %>%
+    dplyr::arrange(row) %>%
+    dplyr::mutate(use = ifelse(is.na(use), FALSE, TRUE))
+ 
+  ret
+  
+}
+
+
+safe_gls <- purrr::safely(nlme::gls)
+find_q <- function(formula, data, max.q) {
+  
+  purrr::map(1:max.q, ~ {
+    safe_gls(formula = formula, data = data, 
+             correlation = nlme::corARMA(p = 0, q = .x))
+  }, formula = formula, data = data) %>%
+    purrr::map_dfr(. ~ {
+      data.frame(q = .x, AIC = ifelse(is.null(.x$result, NA, stats::AIC(.x$result))))
+    }) %>%
+    dplyr::filter(!is.na(AIC)) %>%
+    dplyr::arrange(AIC) %>%
+    dplyr::pull(q) %>%
+    dplyr::first()
   
 }
