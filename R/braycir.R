@@ -50,7 +50,8 @@ braycir <- function(
   # Process empty chamber data for correction ----
   empty %<>% 
     prepare_empty() %>% 
-    dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
+    dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units) %>%
+    dplyr::filter(use)
 
   # Compose data for Stan ----
   data %<>% dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
@@ -288,14 +289,16 @@ prepare_empty <- function(empty) {
 
 
 safe_gls <- purrr::safely(nlme::gls)
-find_q <- function(formula, data, max.q) {
+find_q <- function(model, data, max.q) {
   
   purrr::map(1:max.q, ~ {
-    safe_gls(formula = formula, data = data, 
-             correlation = nlme::corARMA(p = 0, q = .x))
-  }, formula = formula, data = data) %>%
-    purrr::map_dfr(. ~ {
-      data.frame(q = .x, AIC = ifelse(is.null(.x$result, NA, stats::AIC(.x$result))))
+    ret <- safe_gls(model = model, data = data, 
+                    correlation = nlme::corARMA(p = 0, q = .x))
+    ret$q <- .x
+    ret
+  }) %>%
+    purrr::map_dfr( ~ {
+      data.frame(q = .x$q, AIC = ifelse(is.null(.x$result), NA, stats::AIC(.x$result)))
     }) %>%
     dplyr::filter(!is.na(AIC)) %>%
     dplyr::arrange(AIC) %>%
