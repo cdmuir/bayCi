@@ -141,15 +141,30 @@ model {
 }
 generated quantities {
   
+  vector[n_data] predict_Ac;
+  vector[n_data] predict_Aj;
+  vector[n_data] predict_Am;
   vector[n_data] A_corrected;
   vector[n_data] Ci_corrected;
 
   A_corrected = A_data - (b0 + b1 * Cr_data);
 
   for (i in 1:n_data) {
+    
     Ci_corrected[i] = ((gtc_data[i] - E_data[i] / 2) *
       Cs_data[i] - A_corrected[i]) /
       (gtc_data[i] + E_data[i] / 2);
+    
+    // Is this necessary?
+    if (Ci_corrected[i] <= gamma_star) Ci_corrected[i] = gamma_star;
+    
+    // Infinite g_mc
+    predict_Ac[i] = Vcmax * (Ci_corrected[i] - gamma_star) / 
+      (Ci_corrected[i] + Km);
+    predict_Aj[i] = (J / 4) * (Ci_corrected[i] - gamma_star) / 
+      (Ci_corrected[i] + 2 * gamma_star);
+    predict_Am[i] = fmin(predict_Ac[i], predict_Aj[i]);
+
   }
 
 }

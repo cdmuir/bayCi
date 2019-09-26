@@ -123,8 +123,14 @@ braycir <- function(
   
   # Combine elements ----
   ret <- list(
+    data = data,
     empty = empty,
-    fit = fit
+    fit = fit,
+    model = fit@stanmodel,
+    R2 = "Nothing yet",
+    version = glue::glue("bayCi version {v1}\nrstan version {v2}",
+                         v1 = utils::packageVersion("bayCi"),
+                         v2 = utils::packageVersion("rstan"))
   )
   
   # Assign racirfit class ----
