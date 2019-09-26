@@ -9,6 +9,8 @@ fit_empty_quickly <- function(empty) {
 correct_Aci_quickly <- function(data, empty) {
   
   fit <- fit_empty_quickly(empty)
+  b0 <- coef(fit)["(Intercept)"]
+  b1 <- coef(fit)["Cr"]
   data %>% mutate(
     A_corrected = A - (b0 + b1 * Cr),
     Ci_corrected = ((gtc - E / 2) * Cs - A) / (gtc + E / 2)
