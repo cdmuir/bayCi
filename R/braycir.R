@@ -88,7 +88,7 @@ braycir <- function(
     crayon::blue() %>%
     message()
 
-  "Finding parameter constraints" %>%
+  "Setting parameter constraints" %>%
     crayon::blue() %>%
     message()
 

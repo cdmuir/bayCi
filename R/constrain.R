@@ -74,23 +74,15 @@ get_c_constraints <- function(data, empty, gamma_star, Km, conf.level = 0.999) {
 #' @noRd
 get_j_constraints <- function(data, empty, gamma_star, conf.level = 0.999) {
   
-  fit_init_empty <- lm(A ~ Cr, data = empty)
-  b0 <- coef(fit_init_empty)["(Intercept)"]
-  b1 <- coef(fit_init_empty)["Cr"]
-  data %<>% mutate(
-    A_corrected = A - (b0 + b1 * Cr),
-    Ci_corrected = ((gtc - E / 2) * Cs - A) / (gtc + E / 2)
-  )
-  
   data_j <- data %>%
+    correct_Aci_quickly(empty) %>%
     dplyr::mutate(
       A_j = A_corrected + 1 / 2,
       Ci_j = (Ci_corrected - gamma_star) / (Ci_corrected + 2 * gamma_star),
-      gamma_star = gamma_star,
-      Km = Km
+      gamma_star = gamma_star
     )  
   
-  quantile(data$Ci_corrected, probs = c(0, 0.25, 0.5, 0.75)) %>%
+  quantile(data_j$Ci_corrected, probs = c(0, 0.25, 0.5, 0.75)) %>%
     purrr::map_dfr(~ {
       data_j %<>% dplyr::filter(Ci_corrected > .x)
       
@@ -98,7 +90,7 @@ get_j_constraints <- function(data, empty, gamma_star, conf.level = 0.999) {
       
       fit_init_j2 <- stats::nls(
         formula = A_corrected ~ (J / 4) * ((Ci_corrected - gamma_star) / (Ci_corrected + 2 * gamma_star)) - Rd, 
-        data = data_c, 
+        data = data_j, 
         start = list(
           J = 4 * coef(fit_init_j1)["Ci_j"],
           Rd = 0
