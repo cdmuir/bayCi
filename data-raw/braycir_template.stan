@@ -31,11 +31,12 @@ parameters {
   
   // ACi curve parameters
   // real<lower=0> gamma_star;
-  // parameters_J
+  parameters_J
   // real<lower=0> Km;
   parameters_Rd
   parameters_Vcmax
   real<lower=0> sigma_data;
+  simplex[2] w; // mixing proportions
 
 }
 transformed parameters{
@@ -57,6 +58,9 @@ transformed parameters{
 }
 model {
   
+  // Finite mixture based on: https://mc-stan.org/docs/2_20/stan-users-guide/mixture-modeling-chapter.html
+  
+  vector[2] log_w = log(w);
   // DESCRIBE
   // real a;
   // real bJ;
@@ -65,7 +69,7 @@ model {
   // real cV;
   // vector[n_data] Am;
   vector[n_data] Ac;
-  // vector[n_data] Aj;
+  vector[n_data] Aj;
 
   vector[n_data] A_corrected;
   vector[n_data] Ci_corrected;
@@ -80,7 +84,7 @@ model {
   // ACi curve priors
   // gamma_star ~ normal(35.91, 0.1);
   // Km ~ normal(661.453, 1);
-  // priors_J
+  priors_J
   priors_Rd
   priors_Vcmax
   sigma_data ~ cauchy(0, 1);
@@ -89,7 +93,9 @@ model {
   A_corrected = A_data - (b0 + b1 * Cr_data);
   
   for (i in 1:n_data) {
-
+    
+    vector[2] lps = log_w;
+    
     // Eq. C-16 (page C-11) of LI6800 manual
     // Converted to Pa by multiplying by (Pa_data / 1000)
     // 
@@ -104,8 +110,12 @@ model {
     if (Ci_corrected[i] <= gamma_star) Ci_corrected[i] = gamma_star;
     
     // Infinite g_mc
-    Ac[i] = Vcmax * (Ci_corrected[i] - gamma_star)/(Ci_corrected[i] + Km);
-    // Aj[i] = (J / 4) * (Ci_corrected[i] - gamma_star)/(Ci_corrected[i] + 2 * gamma_star);
+    Ac[i] = Vcmax * (Ci_corrected[i] - gamma_star) / (Ci_corrected[i] + Km);
+    Aj[i] = (J / 4) * (Ci_corrected[i] - gamma_star) / 
+      (Ci_corrected[i] + 2 * gamma_star);
+    lps[1] += normal_lpdf(A_corrected[i] | Ac[i], sigma_data);
+    lps[2] += normal_lpdf(A_corrected[i] | Aj[i], sigma_data);
+    target += log_sum_exp(lps);
     
     // Estimate g_mc
     // a = -1 / gmc;
@@ -126,7 +136,7 @@ model {
 
   // Likelihood
   A_empty ~ normal(pred, sigma_cor);
-  A_corrected ~ normal(Ac , sigma_data);
+  // A_corrected ~ normal(Ac , sigma_data);
   
 }
 generated quantities {

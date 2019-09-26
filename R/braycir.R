@@ -54,7 +54,11 @@ braycir <- function(
     dplyr::filter(use)
 
   # Compose data for Stan ----
-  data %<>% dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
+  data %<>% 
+    prepare_data(empty) %>%
+    dplyr::filter(use) %>%
+    dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
+  
   stan_data <- list(
     
     # Empty chamber data
@@ -270,7 +274,9 @@ prepare_empty <- function(empty) {
   #   
   # }
 
-  glue::glue("Final dataset contains {n} rows\n", n = nrow(empty3)) %>%
+  glue::glue("Final 'empty' dataset contains {n} rows ({p}%)\n", 
+             n = nrow(empty3),
+             p = round(100 * nrow(empty3) / nrow(original_empty))) %>%
     crayon::blue() %>%
     message()
 
@@ -315,3 +321,55 @@ find_q <- function(model, data, max.q) {
     dplyr::first()
   
 }
+
+prepare_data <- function(data, empty) {
+  
+  # Messages ----
+  "Preparing RACiR curve" %>%
+    crayon::bold() %>%
+    crayon::blue() %>%
+    message()
+  
+  glue::glue("Original dataset contains {n} rows", n = nrow(data)) %>%
+    crayon::blue() %>%
+    message()
+  
+  data %<>% dplyr::mutate(row = 1:nrow(.))
+  original_data <- data
+  
+  data1 <- data %>%
+    dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units) %>%
+    bayCi:::correct_Aci_quickly(empty)
+  
+  fit <- stats::loess(A_corrected ~ Ci_corrected, data = data1)
+  
+  data %<>% dplyr::mutate(
+    residual = fit$residuals,
+    outlier = abs(residual) > 4 * sd(fit$residuals)
+  ) %>%
+    dplyr::filter(!outlier)
+  
+  glue::glue("Final RACiR dataset contains {n} rows ({p}%)\n", 
+             n = nrow(data), 
+             p = round(100 * nrow(data) / nrow(original_data))) %>%
+    crayon::blue() %>%
+    message()
+  
+  # Inspect results and provide feedback ----
+  if (nrow(data) < 10) {
+    warning("In 'prepare_data', fewer than 10 data points remain in RACiR curve. Inspect results carefully.")
+  }
+  
+  # Return ----
+  # include some stats on the fit
+  ret <- data %>%
+    dplyr::mutate(use = TRUE) %>%
+    dplyr::select(row, use) %>%
+    dplyr::full_join(original_data, by = "row") %>%
+    dplyr::arrange(row) %>%
+    dplyr::mutate(use = ifelse(is.na(use), FALSE, TRUE))
+  
+  ret
+  
+}
+
