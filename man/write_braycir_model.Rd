@@ -6,6 +6,15 @@
 \usage{
 write_braycir_model(data, empty, gamma_star, Km)
 }
+\arguments{
+\item{data}{An object of class \code{\link[=racir-class]{racir}} containing data for all model variables.}
+
+\item{empty}{An object of class \code{\link[=empty-class]{empty}} containing data from empty chamber to correct response data.}
+
+\item{gamma_star}{this is probably going to change}
+
+\item{Km}{this is probably going to change}
+}
 \description{
 Write \code{braycir} model
 }

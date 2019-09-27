@@ -1,7 +1,7 @@
 #' Quickly fit apparent A-Ci curve using \code{\link[stats]{lm}}
 #' @noRd
 fit_empty_quickly <- function(empty) {
-  stats::lm(A ~ Cr, data = empty)
+  stats::lm(A ~ Cr + I(Cr ^ 2), data = empty)
 }
 
 #' Quickly correct apparent A-Ci curve
@@ -9,9 +9,9 @@ fit_empty_quickly <- function(empty) {
 correct_Aci_quickly <- function(data, empty) {
   
   fit <- fit_empty_quickly(empty)
-  b0 <- coef(fit)["(Intercept)"]
-  b1 <- coef(fit)["Cr"]
-  data %>% mutate(
+  b0 <- stats::coef(fit)["(Intercept)"]
+  b1 <- stats::coef(fit)["Cr"]
+  data %>% dplyr::mutate(
     A_corrected = A - (b0 + b1 * Cr),
     Ci_corrected = ((gtc - E / 2) * Cs - A) / (gtc + E / 2)
   )
@@ -24,9 +24,10 @@ get_empty_constraints <- function(empty, conf.level = 0.999) {
   fit_init_empty <- fit_empty_quickly(empty)
   ci <- stats::confint(fit_init_empty, level = conf.level)
   tibble::tibble(
-    parameter = c("b0", "b1"),
+    parameter = c("b0", "b1", "b2"),
     low = ci[, 1],
-    high = ci[, 2]
+    high = ci[, 2],
+    high = ci[, 3]
   ) %>%
   dplyr::mutate(mid = (high + low) / 2)
 }
@@ -35,9 +36,33 @@ get_empty_constraints <- function(empty, conf.level = 0.999) {
 #' @noRd
 get_c_constraints <- function(data, empty, gamma_star, Km, conf.level = 0.999) {
   
+  fit <- fit_empty_quickly(empty)
+  
+  pars <- c(
+    b0 = unname(coef(fit)["(Intercept)"]),
+    b1 = unname(coef(fit)["Cr"]),
+    b2 = unname(coef(fit)["I(Cr^2)"]),
+    sigma_empty = stats::sigma(fit)
+  )
+  
+  lpars <- c(
+    b0 = unname(confint(fit, level = conf.level)["(Intercept)", 1]),
+    b1 = unname(confint(fit, level = conf.level)["Cr", 1]),
+    b2 = unname(confint(fit, level = conf.level)["I(Cr^2)", 1]),
+    sigma_empty = 0.1 * pars["sigma_empty"]
+  )
+
+  upars <- c(
+    b0 = unname(confint(fit, level = conf.level)["(Intercept)", 2]),
+    b1 = unname(confint(fit, level = conf.level)["Cr", 2]),
+    b2 = unname(confint(fit, level = conf.level)["I(Cr^2)", 2]),
+    sigma_empty = 10 * pars["sigma_empty"]
+  )
+  
   data_c <- data %>%
-    correct_Aci_quickly(empty) %>%
     dplyr::mutate(
+      A_corrected = A - (pars["b0"] + pars["b1"] * Cr) + pars["b2"] * Cr ^ 2,
+      Ci_corrected = ((gtc - E / 2) * Cs - A) / (gtc + E / 2),
       A_c = A_corrected + gamma_star / Km,
       Ci_c = (Ci_corrected - gamma_star) / (Ci_corrected + Km),
       gamma_star = gamma_star,
@@ -46,22 +71,49 @@ get_c_constraints <- function(data, empty, gamma_star, Km, conf.level = 0.999) {
   
   quantile(data_c$Ci_corrected, probs = c(0.25, 0.5, 0.75, 1)) %>%
     purrr::map_dfr(~ {
-      data_c %<>% dplyr::filter(Ci_corrected < .x)
       
-      fit_init_c1 <- stats::lm(A_c ~ Ci_c, data = data_c)
+      dc <- dplyr::filter(data_c, Ci_corrected < .x)
       
-      fit_init_c2 <- stats::nls(
-        formula = A_corrected ~ Vcmax * ((Ci_corrected - gamma_star) / (Ci_corrected + Km)) - Rd, 
-        data = data_c, 
-        start = list(
-          Vcmax = coef(fit_init_c1)["Ci_c"],
-          Rd = -coef(fit_init_c1)["(Intercept)"]
-        )
+      fit_init_c1 <- stats::lm(A_c ~ Ci_c, data = dc,)
+      
+      init <- c(
+        pars, 
+        Rd = -unname(coef(fit_init_c1)["(Intercept)"]), 
+        Vcmax = unname(coef(fit_init_c1)["Ci_c"]),
+        sigma_data = stats::sigma(fit_init_c1)
       )
       
-      as.data.frame(suppressMessages(confint(fit_init_c2, level = conf.level))) %>%
-        magrittr::set_colnames(c("low", "high")) %>%
-        tibble::rownames_to_column("parameter")
+      lower <- c(
+        lpars,
+        Rd = -unname(confint(fit_init_c1, level = conf.level)["(Intercept)", 1]),
+        Vcmax = unname(confint(fit_init_c1, level = conf.level)["Ci_c", 1]),
+        sigma_data = 0.1 * init["sigma_data"]
+      )
+
+      upper <- c(
+        upars,
+        Rd = -unname(confint(fit_init_c1, level = conf.level)["(Intercept)", 2]),
+        Vcmax = unname(confint(fit_init_c1, level = conf.level)["Ci_c", 2]),
+        sigma_data = 10 * init["sigma_data"]
+      )
+      
+      fit_init_c2 <- stats::optim(
+        par = init, 
+        fn = nll_c, 
+        method = "L-BFGS-B",
+        lower = lower,
+        upper = upper,
+        hessian = TRUE,
+        data = dc, empty = empty, gamma_star = gamma_star, Km = Km
+      )
+      
+      se <- qnorm(conf.level) * sqrt(abs(diag(solve(fit_init_c2$hessian))))
+      
+      tibble::tibble(
+        parameter = names(fit_init_c2$par),
+        low = fit_init_c2$par - se,
+        high = fit_init_c2$par + se
+      )
       
     }) %>%
     dplyr::group_by(parameter) %>%
@@ -109,3 +161,28 @@ get_j_constraints <- function(data, empty, gamma_star, conf.level = 0.999) {
   
 }
 
+nll_c <- function(pars, data, empty, gamma_star, Km) {
+  
+  empty_nll <- empty %>%
+    dplyr::mutate(
+      A_predicted = pars["b0"] + pars["b1"] * Cr + pars["b2"] * Cr ^ 2,
+      res = A_predicted - A,
+      ll = dnorm(res, 0, pars["sigma_empty"], log = TRUE)
+    ) %>%
+    dplyr::summarise(nll = -sum(ll)) %>%
+    dplyr::pull(nll)
+  
+  data_nll <- data %>% 
+    dplyr::mutate(
+      A_corrected = A - (pars["b0"] + pars["b1"] * Cr) + pars["b2"] * Cr ^ 2,
+      Ci_corrected = ((gtc - E / 2) * Cs - A) / (gtc + E / 2),
+      A_predicted = pars["Vcmax"] * ((Ci_corrected - gamma_star) / (Ci_corrected + Km)) - pars["Rd"],
+      res = A_predicted - A_corrected,
+      ll = dnorm(res, 0, pars["sigma_data"], log = TRUE)
+    ) %>%
+    dplyr::summarise(nll = -sum(ll)) %>%
+    dplyr::pull(nll)
+  
+  empty_nll + data_nll
+  
+}

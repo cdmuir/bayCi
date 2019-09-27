@@ -39,6 +39,7 @@ new_racirfit <- function(.x) {
 
 #' @description - \code{validate_racirfit} validates that object has correct values
 #' @rdname racirfit-class
+#' @inheritParams new_racirfit
 #' @export
 validate_racirfit <- function(.x) {
   

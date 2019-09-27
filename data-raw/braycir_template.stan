@@ -4,16 +4,17 @@ data {
   int<lower=0> n_empty;
   vector[n_empty] A_empty;
   vector[n_empty] Cr_empty;
+  vector[n_empty] Cr2_empty;
   
   // Fixed values
   real gamma_star;
   real Km;
-  real theta;
 
   // RACiR data
   int<lower=0> n_data;
   vector[n_data] A_data;   // uncorrected A [umol / m^2 / s]
   vector[n_data] Cr_data;  // Reference CO2 [umol / mol]
+  vector[n_data] Cr2_data; // Reference CO2 [umol / mol], squared
   vector[n_data] Cs_data;  // Sensor CO2 [umol / mol]
   vector[n_data] E_data;   // Evaporation [mol / m^2 / s]
   vector[n_data] gsc_data; // Stomatal conductance to CO2 [mol / m^2 / s]
@@ -26,6 +27,7 @@ parameters {
   // Correction curve parameters
   parameters_b0
   parameters_b1
+  parameters_b2
   parameters_sigma_empty
   parameters_phi
   
@@ -33,7 +35,8 @@ parameters {
   // real<lower=0> gamma_star;
   parameters_J
   // real<lower=0> Km;
-  parameters_Rd
+  // parameters_Rd
+  real<lower=0> Rd;
   parameters_Vcmax
   real<lower=0> sigma_data;
   simplex[2] w; // mixing proportions
@@ -46,10 +49,10 @@ transformed parameters{
   vector[n_empty] epsilon;
   vector[n_empty] pred;
   real sigma_cor;
-  pred[1] = b0 + b1 * Cr_empty[1];
+  pred[1] = b0 + b1 * Cr_empty[1] + b2 * Cr2_empty[1];
   epsilon[1] = A_empty[1] - pred[1];
   for(i in 2:n_empty) {
-    pred[i] = b0 + b1 * Cr_empty[i];
+    pred[i] = b0 + b1 * Cr_empty[i] + b2 * Cr2_empty[i];
     epsilon[i] = (A_empty[i] - pred[i]) - phi * epsilon[i - 1];
   }
   // Var = sigma2 * (1-rho^2)
@@ -76,8 +79,9 @@ model {
   // vector[n_data] Pci_corrected;
   
   // Empty chamber priors
-  b0 ~ normal(-12.2, 0.2);
-  b1 ~ normal(0.0063, 0.0002);
+  priors_b0
+  priors_b1
+  priors_b2
   phi ~ normal(0, 1);
   sigma_empty ~ cauchy(0, 1);
   
@@ -85,12 +89,13 @@ model {
   // gamma_star ~ normal(35.91, 0.1);
   // Km ~ normal(661.453, 1);
   priors_J
-  priors_Rd
+  // priors_Rd
+  Rd ~ normal(0, 10);
   priors_Vcmax
   sigma_data ~ cauchy(0, 1);
 
   // Correct A
-  A_corrected = A_data - (b0 + b1 * Cr_data);
+  A_corrected = A_data - (b0 + b1 * Cr_data + b2 * Cr2_data);
   
   for (i in 1:n_data) {
     
@@ -107,14 +112,14 @@ model {
       (gtc_data[i] + E_data[i] / 2);
     
     // Is this necessary?
-    if (Ci_corrected[i] <= gamma_star) Ci_corrected[i] = gamma_star;
+    // if (Ci_corrected[i] <= gamma_star) Ci_corrected[i] = gamma_star;
     
     // Infinite g_mc
     Ac[i] = Vcmax * (Ci_corrected[i] - gamma_star) / (Ci_corrected[i] + Km);
     Aj[i] = (J / 4) * (Ci_corrected[i] - gamma_star) / 
       (Ci_corrected[i] + 2 * gamma_star);
-    lps[1] += normal_lpdf(A_corrected[i] | Ac[i], sigma_data);
-    lps[2] += normal_lpdf(A_corrected[i] | Aj[i], sigma_data);
+    lps[1] += normal_lpdf(A_corrected[i] | Ac[i] - Rd, sigma_data);
+    lps[2] += normal_lpdf(A_corrected[i] | Aj[i] - Rd, sigma_data);
     target += log_sum_exp(lps);
     
     // Estimate g_mc
@@ -147,7 +152,7 @@ generated quantities {
   vector[n_data] A_corrected;
   vector[n_data] Ci_corrected;
 
-  A_corrected = A_data - (b0 + b1 * Cr_data);
+  A_corrected = A_data - (b0 + b1 * Cr_data + b2 * Cr2_data);
 
   for (i in 1:n_data) {
     
@@ -156,13 +161,13 @@ generated quantities {
       (gtc_data[i] + E_data[i] / 2);
     
     // Is this necessary?
-    if (Ci_corrected[i] <= gamma_star) Ci_corrected[i] = gamma_star;
+    // if (Ci_corrected[i] <= gamma_star) Ci_corrected[i] = gamma_star;
     
     // Infinite g_mc
     predict_Ac[i] = Vcmax * (Ci_corrected[i] - gamma_star) / 
-      (Ci_corrected[i] + Km);
+      (Ci_corrected[i] + Km) - Rd;
     predict_Aj[i] = (J / 4) * (Ci_corrected[i] - gamma_star) / 
-      (Ci_corrected[i] + 2 * gamma_star);
+      (Ci_corrected[i] + 2 * gamma_star) - Rd;
     predict_Am[i] = fmin(predict_Ac[i], predict_Aj[i]);
 
   }

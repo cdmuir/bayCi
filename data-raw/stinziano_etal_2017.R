@@ -31,7 +31,8 @@ stinziano_etal_2017 <- readxl::read_excel(
   col_names = colnames(stinziano_etal_2017_empty_units),
   na = "-"
 ) %>%
-  dplyr::filter(treatment == "500 to 0, with leaf")
+  dplyr::filter(treatment == "500 to 0, with leaf") %>%
+  dplyr::select(A, Tleaf, Q, E, gsw, gtc, CO2_r, CO2_s, Pa, Pci)
 
 usethis::use_data(stinziano_etal_2017, internal = FALSE, overwrite = TRUE, 
                   version = 3)

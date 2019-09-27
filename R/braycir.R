@@ -65,16 +65,17 @@ braycir <- function(
     n_empty = nrow(empty),
     A_empty = empty$A,
     Cr_empty = empty$Cr,
+    Cr2_empty = empty$Cr ^ 2,
     
     # Fixed parameters
     gamma_star = 35.91,
     Km = 661.453,
-    theta = 0.9999,
-    
+
     # RACiR data
     n_data = nrow(data),
     A_data = data$A,
     Cr_data = data$Cr,
+    Cr2_data = data$Cr ^ 2,
     Cs_data = data$Cs,
     E_data = data$E,
     gsc_data = data$gsc,
@@ -343,11 +344,24 @@ prepare_data <- function(data, empty) {
   data %<>% dplyr::mutate(row = 1:nrow(.))
   original_data <- data
   
+  # 1. Remove outliers from apparent A-Cr curve using robust regression ---
   data1 <- data %>%
-    dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units) %>%
-    bayCi:::correct_Aci_quickly(empty)
+    dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
   
-  fit <- stats::loess(A_corrected ~ Ci_corrected, data = data1)
+  fit <- robustbase::lmrob(A ~ Cr, data = data1)
+  
+  data %<>% dplyr::mutate(
+    rweight = fit$rweights,
+    outlier = rweight < 0.01
+  ) %>%
+    dplyr::filter(!outlier)
+  
+  # 2. Remove outliers from approximate corrected A-Ci using loess ----
+  data2 <- data %>%
+    dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units) %>%
+    correct_Aci_quickly(empty)
+  
+  fit <- stats::loess(A_corrected ~ Ci_corrected, data = data2)
   
   data %<>% dplyr::mutate(
     residual = fit$residuals,
@@ -361,12 +375,12 @@ prepare_data <- function(data, empty) {
     crayon::blue() %>%
     message()
   
-  # Inspect results and provide feedback ----
+  # 3. Inspect results and provide feedback ----
   if (nrow(data) < 10) {
     warning("In 'prepare_data', fewer than 10 data points remain in RACiR curve. Inspect results carefully.")
   }
   
-  # Return ----
+  # 4. Return ----
   # include some stats on the fit
   ret <- data %>%
     dplyr::mutate(use = TRUE) %>%

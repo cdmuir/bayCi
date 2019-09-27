@@ -1,22 +1,19 @@
 #' RACiR curves in Poplar
 #'
-#' Example A-Ci curve dataset from Stinziano *et al.* 2017
+#' Example A-Ci curve dataset from Stinziano *et al.* 2017 on *Populus deltoides*
 #'
-#' @format A data frame with 5843 rows and 12 variables:
+#' @format A data frame with 159 rows and 10 variables:
 #' 
 #' \describe{
-#'   \item{species}{*Populus deltoides*}
-#'   \item{machine}{LI-6800 machine (LI1 or LI2)}
-#'   \item{plant_id}{plant id (A, B or C)}
-#'   \item{curve_number}{ID of repeated curves}
-#'   \item{curve_type}{RACiR (with range of CO2) or Standard}
 #'   \item{A}{net CO2 assimilation rate (\eqn{\mu \text{mol}~\text{m}^{-2}~\text{s}^{-1}}{umol / m^2 / s})}
-#'   \item{Ci}{intercellular CO2 concentration (ppm)}
-#'   \item{Cr}{CO2 concentration at reference IRGA (ppm)}
-#'   \item{Cs}{CO2 concentration at sample IRGA (ppm)}
+#'   \item{CO2_r}{CO2 concentration at reference IRGA (ppm)}
+#'   \item{CO2_s}{CO2 concentration at sample IRGA (ppm)}
 #'   \item{E}{transpiration rate (\eqn{\text{mol}~\text{m}^{-2}~\text{s}^{-1}}{mol / m^2 / s})}
-#'   \item{gsc}{stomatal conductance to CO2 (\eqn{\text{mol}~\text{m}^{-2}~\text{s}^{-1}}{mol / m^2 / s})}
-#'   \item{PARi}{irradiance (\eqn{\mu \text{mol~photons}~\text{m}^{-2}~\text{s}^{-1}}{umol photons / m^2 / s})}
+#'   \item{gsw}{stomatal conductance to water vapor (\eqn{\text{mol}~\text{m}^{-2}~\text{s}^{-1}}{mol / m^2 / s})}
+#'   \item{gtc}{total conductance to CO2 (\eqn{\text{mol}~\text{m}^{-2}~\text{s}^{-1}}{mol / m^2 / s})}
+#'   \item{Pa}{Atmospheric pressure (kPa)}
+#'   \item{Pci}{intercellular CO2 concentration (Pa)}
+#'   \item{Q}{irradiance (\eqn{\mu \text{mol~photons}~\text{m}^{-2}~\text{s}^{-1}}{umol photons / m^2 / s})}
 #'   \item{Tleaf}{leaf temperature (degrees Celsius)}
 #' }
 #' 
