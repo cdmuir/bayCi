@@ -18,13 +18,13 @@ new_empty <- function(.x) {
   checkmate::assert_subset(c("A", "Cr", "time"), colnames(.x))
   
   # Check that required variables have proper units ----
-  checkmate::assert_class(dplyr::pull(.x, A), "units")
-  checkmate::assert_class(dplyr::pull(.x, Cr), "units")
-  checkmate::assert_class(dplyr::pull(.x, time), "units")
+  checkmate::assert_class(dplyr::pull(.x, .data$A), "units")
+  checkmate::assert_class(dplyr::pull(.x, .data$Cr), "units")
+  checkmate::assert_class(dplyr::pull(.x, .data$time), "units")
   .x %<>% dplyr::mutate(
-    A = units::set_units(A, umol / m^2 / s),
-    Cr = units::set_units(Cr, umol / mol),
-    time = units::set_units(time, s)
+    A = units::set_units(.data$A, umol / m^2 / s),
+    Cr = units::set_units(.data$Cr, umol / mol),
+    time = units::set_units(.data$time, s)
   )
 
   structure(

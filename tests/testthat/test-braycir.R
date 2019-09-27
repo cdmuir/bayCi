@@ -3,11 +3,17 @@ test_that("braycir() checks arguments", {
   # data argument ----
   data <- data.frame(
     A = units::set_units(c(10, 15), umol / m^2 / s),
-    Pci = units::set_units(c(40, 50), Pa)
+    Cr = units::set_units(c(400, 450), umol / mol),
+    Cs = units::set_units(c(400, 450), umol / mol),
+    E = units::set_units(c(0.1, 0.2), mol / m^2 / s),
+    gsc = units::set_units(c(0.1, 0.2), mol / m^2 / s),
+    gtc = units::set_units(c(0.1, 0.2), mol / m^2 / s),
+    Pa = units::set_units(c(100, 101), kPa)
   )
   empty <- data.frame(
     A = units::set_units(c(10, 15), umol / m^2 / s),
-    Pci = units::set_units(c(40, 50), Pa)
+    Cr = units::set_units(c(400, 450), umol / mol),
+    time = units::set_units(c(1, 2), s)
   )
   
   expect_error(braycir(data, empty), regexp = "Assertion on 'data' failed: Must inherit from class 'racir', but has class 'data.frame'.")
@@ -17,7 +23,6 @@ test_that("braycir() checks arguments", {
   expect_error(braycir(data, empty), regexp = "Assertion on 'empty' failed: Must inherit from class 'empty', but has class 'data.frame'.")
   
   empty %<>% new_empty()
-  expect_error(braycir(data, empty)) # too few points
 
   # chains argument ----
   chains <- 0

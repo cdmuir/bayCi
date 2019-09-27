@@ -2,13 +2,19 @@
 % Please edit documentation in R/racirfit-class.R
 \name{racirfit-class}
 \alias{racirfit-class}
+\alias{new_racirfit}
 \alias{validate_racirfit}
 \alias{racirfit}
 \title{S3 class 'racirfit'}
 \usage{
+new_racirfit(.x)
+
 validate_racirfit(.x)
 
 racirfit(.x)
+}
+\arguments{
+\item{.x}{A \code{list} to be constructed into 'racirfit' class or validated.}
 }
 \value{
 \describe{
@@ -22,6 +28,10 @@ racirfit(.x)
 }
 \description{
 The components of a \code{racirfit} object and the various methods are described below. When methods have their own more detailed documentation pages links are provided.
+
+\itemize{
+\item \code{new_racirfit} constructs a list into an 'racir' object
+}
 
 \itemize{
 \item \code{validate_racirfit} validates that object has correct values

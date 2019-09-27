@@ -7,14 +7,14 @@
 \alias{acir}
 \title{S3 class 'acir'}
 \usage{
-new_acir(x)
+new_acir(.x)
 
-validate_acir(x)
+validate_acir(.x)
 
-acir(x)
+acir(.x)
 }
 \arguments{
-\item{x}{A \code{data.frame} or \code{\link[tibble:tibble]{tibble}} to be constructed into 'acir' class or validated.}
+\item{.x}{A \code{data.frame} or \code{\link[tibble:tibble]{tibble}} to be constructed into 'acir' class or validated.}
 }
 \description{
 'acir' class objects are required for \code{\link{baycir}}

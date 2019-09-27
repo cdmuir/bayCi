@@ -7,22 +7,18 @@ NULL
 #' @description - \code{new_acir} constructs a data.frame into an 'acir' object
 #' @rdname acir-class
 #' 
-#' @param x A \code{data.frame} or \code{\link[tibble:tibble]{tibble}} to be constructed into 'acir' class or validated.
+#' @param .x A \code{data.frame} or \code{\link[tibble:tibble]{tibble}} to be constructed into 'acir' class or validated.
 #' 
 #' @export
 
-new_acir <- function(x) {
+new_acir <- function(.x) {
   
-  checkmate::assert_data_frame(x)
-  x %<>% tibble::as_tibble()
-  checkmate::assert_character(id_cols, unique = TRUE)
-  checkmate::assert_character(covariate_cols, unique = TRUE)
-  
+  checkmate::assert_data_frame(.x)
+  .x %<>% tibble::as_tibble()
+
   structure(
-    x, 
-    class = c("tbl", "tbl_df", "aci", "data.frame"), 
-    id_cols = id_cols,
-    covariate_cols = covariate_cols
+    .x, 
+    class = c("tbl", "tbl_df", "acir", "data.frame")
   )
 
 }
@@ -30,7 +26,7 @@ new_acir <- function(x) {
 #' @description - \code{validate_acir} validates that object has correct values
 #' @rdname acir-class
 #' @export
-validate_acir <- function(x) {
+validate_acir <- function(.x) {
   
   checkmate::assert_class("acir")
   # set units
@@ -38,16 +34,16 @@ validate_acir <- function(x) {
   #  - what to do about extra columns
   # validate calculated columns
   # is there enough data?
-  x
+  .x
   
 }
 
 #' @description - \code{acir} user-friendly way to create 'acir' objects
 #' @rdname acir-class
 #' @export
-acir <- function(x) {
+acir <- function(.x) {
   
-  x %>%
+  .x %>%
     new_acir() %>%
     validate_acir()
   

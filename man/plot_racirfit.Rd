@@ -4,7 +4,7 @@
 \alias{plot_racirfit}
 \title{Plot racirfit}
 \usage{
-plot_racirfit(racirfit, .width = 0.95, .point = median,
+plot_racirfit(racirfit, .width = 0.95, .point = stats::median,
   .interval = tidybayes::qi)
 }
 \arguments{

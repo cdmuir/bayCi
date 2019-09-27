@@ -14,50 +14,63 @@ recalc_licor68 <- function(.x) {
   message("Constant values printed in the header of the licor output file are ignored in this recalculation.\nThis means that the values for deltaTw (0), fT1 (1), fT2 (0) or fTeb (0) are set as denoted in brackets.")
   
   .x %>%
-    dplyr::select(-(A:EBSum)) %>%
+    dplyr::select(-(.data$A:.data$EBSum)) %>%
     dplyr::mutate(
-      E = Flow * CorrFact * (H2O_s - H2O_r) / 
-        (100 * S * (1000 - CorrFact * H2O_s)),
-      A = Flow * CorrFact * (CO2_r - CO2_s * (1000 - CorrFact * H2O_r) / 
-                               (1000 - CorrFact * H2O_s)) / (100 * S),
-      Ca = CO2_s - ifelse(CorrFact > 1, A * S * 100 / (Fan * Fan_speed), 0),
-      gbw = blfa_3 + blfa_2 * S + blfa_1 * S * S,
-      Rabs = (Qabs * convert),
-      TleafEB = (Tair + 
-                   (Rabs + 2 * 0.95 * 0.0000000567 * 
-                      (((Tair + 0) + 273) ^ 4 -(Tair+273) ^ 4) - 44100 * E) / 
-                   (1.84 * 29.3 * gbw + 8 * 0.95 * 0.0000000567 * 
-                      (Tair + 273) ^ 3)),
+      E = .data$Flow * .data$CorrFact * (.data$H2O_s - .data$H2O_r) / 
+        (100 * .data$S * (1000 - .data$CorrFact * .data$H2O_s)),
+      A = .data$Flow * .data$CorrFact * 
+        (.data$CO2_r - .data$CO2_s * (1000 - .data$CorrFact * .data$H2O_r) / 
+           (1000 - .data$CorrFact * .data$H2O_s)) / (100 * .data$S),
+      Ca = .data$CO2_s - 
+        ifelse(.data$CorrFact > 1, .data$A * .data$S * 100 / 
+                 (.data$Fan * .data$Fan_speed), 0),
+      gbw = .data$blfa_3 + .data$blfa_2 * .data$S + .data$blfa_1 * .data$S * .data$S,
+      Rabs = (.data$Qabs * .data$convert),
+      TleafEB = (.data$Tair + 
+                   (.data$Rabs + 2 * 0.95 * 0.0000000567 * 
+                      (((.data$Tair + 0) + 273) ^ 4 - (.data$Tair + 273) ^ 4) -
+                      44100 * .data$E) / 
+                   (1.84 * 29.3 * .data$gbw + 8 * 0.95 * 0.0000000567 * 
+                      (.data$Tair + 273) ^ 3)),
       ## n.b. deltaTw set at 0
-      TleafCnd = (1 * Tleaf + 0 * Tleaf2 + 0 * TleafEB),
+      TleafCnd = (1 * .data$Tleaf + 0 * .data$Tleaf2 + 0 * .data$TleafEB),
       ## n.b. fT1, fT2 and fTeb set at 1, 0, 0
-      gtw = E * 
-        (1000 - (1000 * 0.61365 * exp(17.502 * TleafCnd / (240.97 + TleafCnd)) / 
-                   (Pa + ΔPcham) + H2O_s) / 2) / 
-        (1000 * 0.61365 * exp(17.502 * TleafCnd / (240.97 + TleafCnd)) / 
-           (Pa + ΔPcham) - H2O_s),
+      gtw = .data$E * 
+        (1000 - (1000 * 0.61365 * exp(17.502 * .data$TleafCnd / 
+                                        (240.97 + .data$TleafCnd)) / 
+                   (.data$Pa + .data$ΔPcham) + .data$H2O_s) / 2) / 
+        (1000 * 0.61365 * exp(17.502 * .data$TleafCnd / 
+                                (240.97 + .data$TleafCnd)) / 
+           (.data$Pa + .data$ΔPcham) - .data$H2O_s),
       gsw = 2 / 
-        ((1 / gtw - 1 / gbw) + sign(gtw) * 
-           sqrt((1 / gtw - 1 / gbw) * (1 / gtw - 1 / gbw) + 
-                  4 * K / ((K + 1) * (K + 1)) * 
-                  (2 * 1/gtw * 1/gbw - 1/gbw * 1/gbw))),
-      gtc = 1 / ((K + 1) / (gsw / 1.6) + 1 / (gbw / 1.37)) + 
-        K /((K + 1) / (gsw / 1.6) + K / (gbw / 1.37)),
-      Ci = ((gtc - E / 2) * Ca - A) /(gtc + E / 2),
-      Pci = Ci * (Pa + ΔPcham) / 1000,
-      Pca = (CO2_s - ifelse(CorrFact > 1, A * S * 100 / (Fan * Fan_speed), 0)) * 
-        (Pa+ΔPcham) / 1000,
-      SVPleaf = 0.61365 * exp(17.502 * TleafCnd / (240.97 + TleafCnd)),
-      VPcham = H2O_s * (Pa + ΔPcham) / 1000,
-      SVPcham = 0.61365 * exp(17.502 * Tair / (240.97 + Tair)),
-      RHcham = (VPcham / SVPcham * 100),
-      VPDleaf = (SVPleaf - H2O_s * (Pa + ΔPcham) / 1000),
-      LatHFlux = (-E * 44100),
-      SenHFlux = 2 * 29.3 * gbw * 0.92 * (Tair - TleafCnd),
-      NetTherm = 2 * 0.95 * 0.0000000567 * (((Tair + 0) + 273) ^ 4 - 
-                                              (TleafCnd + 273) ^ 4),
+        ((1 / .data$gtw - 1 / .data$gbw) + sign(.data$gtw) * 
+           sqrt((1 / .data$gtw - 1 / .data$gbw) * 
+                  (1 / .data$gtw - 1 / .data$gbw) + 
+                  4 * .data$K / ((.data$K + 1) * (.data$K + 1)) * 
+                  (2 * 1 / .data$gtw * 1 / .data$gbw - 
+                     1 / .data$gbw * 1 / .data$gbw))),
+      gtc = 1 / ((.data$K + 1) / (.data$gsw / 1.6) + 1 / (.data$gbw / 1.37)) + 
+        .data$K /((.data$K + 1) / (.data$gsw / 1.6) + 
+                    .data$K / (.data$gbw / 1.37)),
+      Ci = ((.data$gtc - .data$E / 2) * .data$Ca - .data$A) /
+        (.data$gtc + .data$E / 2),
+      Pci = .data$Ci * (.data$Pa + .data$ΔPcham) / 1000,
+      Pca = (.data$CO2_s - 
+               ifelse(.data$CorrFact > 1, .data$A * .data$S * 100 /
+                        (.data$Fan * .data$Fan_speed), 0)) * 
+        (.data$Pa + .data$ΔPcham) / 1000,
+      SVPleaf = 0.61365 * 
+        exp(17.502 * .data$TleafCnd / (240.97 + .data$TleafCnd)),
+      VPcham = .data$H2O_s * (.data$Pa + .data$ΔPcham) / 1000,
+      SVPcham = 0.61365 * exp(17.502 * .data$Tair / (240.97 + .data$Tair)),
+      RHcham = (.data$VPcham / .data$SVPcham * 100),
+      VPDleaf = (.data$SVPleaf - .data$H2O_s * (.data$Pa + .data$ΔPcham) / 1000),
+      LatHFlux = (-.data$E * 44100),
+      SenHFlux = 2 * 29.3 * .data$gbw * 0.92 * (.data$Tair - .data$TleafCnd),
+      NetTherm = 2 * 0.95 * 0.0000000567 * (((.data$Tair + 0) + 273) ^ 4 - 
+                                              (.data$TleafCnd + 273) ^ 4),
       ## n.b. deltaTw set at 0
-      EBSum = Rabs + NetTherm + LatHFlux + SenHFlux
+      EBSum = .data$Rabs + .data$NetTherm + .data$LatHFlux + .data$SenHFlux
     )
   
 }

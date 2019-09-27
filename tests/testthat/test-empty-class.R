@@ -2,7 +2,8 @@ test_that("empty constructor function works", {
   
   ex <- data.frame(
     A = units::set_units(c(10, 15), umol / m^2 / s),
-    Pci = units::set_units(c(40, 50), Pa)
+    Cr = units::set_units(c(400, 450), umol / mol),
+    time = units::set_units(c(1, 2), s)
   )
   
   # expect error if data are a list
@@ -14,26 +15,32 @@ test_that("empty constructor function works", {
   
   # expect error if required columns are missing
   expect_error(new_empty(dplyr::select(ex, -A)))
-  expect_error(new_empty(dplyr::select(ex, -Pci)))
+  expect_error(new_empty(dplyr::select(ex, -Cr)))
+  expect_error(new_empty(dplyr::select(ex, -time)))
   
   # expect no error if extra columns are included
   expect_silent(new_empty(dplyr::mutate(ex, x = rnorm(nrow(ex)))))
   
   # expect error if no units provided
   expect_error(new_empty(dplyr::mutate(ex, A = units::drop_units(A))))
-  expect_error(new_empty(dplyr::mutate(ex, Pci = units::drop_units(Pci))))
-
+  expect_error(new_empty(dplyr::mutate(ex, Cr = units::drop_units(Cr))))
+  expect_error(new_empty(dplyr::mutate(ex, time = units::drop_units(time))))
+  
   # expect error if wrong units provided
   expect_error(new_empty(dplyr::mutate(
-    ex, A = units::set_units(c(10, 15), 1)
+    ex, A = units::set_units(c(10, 15), degreeC)
   )))
   expect_error(new_empty(dplyr::mutate(
-    ex, Pci = units::set_units(c(40, 50), 1)
+    ex, Cr = units::set_units(c(40, 50), degreeC)
+  )))
+  expect_error(new_empty(dplyr::mutate(
+    ex, time = units::set_units(c(1, 2), degreeC)
   )))
   
   # expect no error if convertible units are provided
   expect_silent(new_empty(dplyr::mutate(ex, A = units::set_units(A, mol / cm^2 / h))))
-  expect_silent(new_empty(dplyr::mutate(ex, Pci = units::set_units(Pci, kPa))))
+  expect_silent(new_empty(dplyr::mutate(ex, Cr = units::set_units(Cr, mmol / umol))))
+  expect_silent(new_empty(dplyr::mutate(ex, time = units::set_units(time, h))))
   
 })
 
@@ -41,7 +48,8 @@ test_that("empty validator function works", {
   
   ex <- data.frame(
     A = units::set_units(seq(-10, 50, length.out = 100), umol / m^2 / s),
-    Pci = units::set_units(seq(0, 50, length.out = 100), Pa)
+    Cr = units::set_units(seq(0, 500, length.out = 100), umol / mol),
+    time = units::set_units(seq(1, 100, length.out = 100), s)
   )
   
   # expect error if data are a data.frame
@@ -56,11 +64,12 @@ test_that("empty validator function works", {
   # expect warning if less than 10 rows
   expect_warning(validate_empty(ex[1:9, ]))
   
-  # expect warning if values are suspeciously low/high
+  # expect warning if values are suspiciously low/high
   ex1 <- ex %>% 
     dplyr::add_row(
       A = units::set_units(-11.1, umol / m^2 / s),
-      Pci = units::set_units(40, Pa)
+      Cr = units::set_units(501, umol / mol),
+      time = units::set_units(101, s)
     )
   
   expect_warning(validate_empty(ex1))
@@ -68,15 +77,17 @@ test_that("empty validator function works", {
   ex1 <- ex %>% 
     dplyr::add_row(
       A = units::set_units(51.1, umol / m^2 / s),
-      Pci = units::set_units(40, Pa)
+      Cr = units::set_units(501, umol / mol),
+      time = units::set_units(101, s)
     )
   
   expect_warning(validate_empty(ex1))
 
   ex1 <- ex %>% 
     dplyr::add_row(
-      A = units::set_units(25, umol / m^2 / s),
-      Pci = units::set_units(301.1, Pa)
+      A = units::set_units(10, umol / m^2 / s),
+      Cr = units::set_units(9999, umol / mol),
+      time = units::set_units(101, s)
     )
   
   expect_warning(validate_empty(ex1))

@@ -25,5 +25,4 @@
 
 #' Data from empty chamber for correcting apparent A
 #' @rdname stinziano_etal_2017
-#' @noRd
 "stinziano_etal_2017_empty"

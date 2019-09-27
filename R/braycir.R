@@ -51,12 +51,12 @@ braycir <- function(
   empty %<>% 
     prepare_empty() %>% 
     dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units) %>%
-    dplyr::filter(use)
+    dplyr::filter(.data$use)
 
   # Compose data for Stan ----
   data %<>% 
     prepare_data(empty) %>%
-    dplyr::filter(use) %>%
+    dplyr::filter(.data$use) %>%
     dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
   
   stan_data <- list(
@@ -183,15 +183,15 @@ prepare_empty <- function(empty) {
 
   empty %<>% dplyr::mutate(
     rweight = fit$rweights,
-    outlier = rweight < 0.01
+    outlier = .data$rweight < 0.01
   ) %>%
-    dplyr::filter(!outlier) %>%
-    dplyr::select(row, time, Cr, A)
+    dplyr::filter(!.data$outlier) %>%
+    dplyr::select(.data$row, .data$time, .data$Cr, .data$A)
   
   # 2. Time series outlier detection ----
   empty2 <- empty %>%
     dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units)
-  A_ts <- stats::ts(dplyr::select(empty2, A)) 
+  A_ts <- stats::ts(dplyr::select(empty2, .data$A)) 
   o <- forecast::tsoutliers(A_ts, iterate = 10)
   
   if (length(o$index) > 0) {
@@ -202,8 +202,8 @@ prepare_empty <- function(empty) {
   ## Initial time-series fit ----
   empty3 <- empty %>% 
     dplyr::mutate_if(~ inherits(.x, "units"), units::drop_units) %>%
-    dplyr::mutate(Cr2 = Cr ^ 2, Cr3 = Cr ^ 3) %>%
-    dplyr::arrange(time)
+    dplyr::mutate(Cr2 = .data$Cr ^ 2, Cr3 = .data$Cr ^ 3) %>%
+    dplyr::arrange(.data$time)
   
   # empty_ts <- zoo::zoo(dplyr::select(empty3, -time), empty3$time) 
   # 
@@ -300,10 +300,10 @@ prepare_empty <- function(empty) {
   # include some stats on the fit
   ret <- empty3 %>%
     dplyr::mutate(use = TRUE) %>%
-    dplyr::select(row, use) %>%
+    dplyr::select(.data$row, .data$use) %>%
     dplyr::full_join(original_empty, by = "row") %>%
-    dplyr::arrange(row) %>%
-    dplyr::mutate(use = ifelse(is.na(use), FALSE, TRUE))
+    dplyr::arrange(.data$row) %>%
+    dplyr::mutate(use = ifelse(is.na(.data$use), FALSE, TRUE))
  
   ret
   
@@ -322,9 +322,9 @@ find_q <- function(model, data, max.q) {
     purrr::map_dfr( ~ {
       data.frame(q = .x$q, AIC = ifelse(is.null(.x$result), NA, stats::AIC(.x$result)))
     }) %>%
-    dplyr::filter(!is.na(AIC)) %>%
-    dplyr::arrange(AIC) %>%
-    dplyr::pull(q) %>%
+    dplyr::filter(!is.na(.data$AIC)) %>%
+    dplyr::arrange(.data$AIC) %>%
+    dplyr::pull(.data$q) %>%
     dplyr::first()
   
 }
@@ -352,9 +352,9 @@ prepare_data <- function(data, empty) {
   
   data %<>% dplyr::mutate(
     rweight = fit$rweights,
-    outlier = rweight < 0.01
+    outlier = .data$rweight < 0.01
   ) %>%
-    dplyr::filter(!outlier)
+    dplyr::filter(!.data$outlier)
   
   # 2. Remove outliers from approximate corrected A-Ci using loess ----
   data2 <- data %>%
@@ -365,9 +365,9 @@ prepare_data <- function(data, empty) {
   
   data %<>% dplyr::mutate(
     residual = fit$residuals,
-    outlier = abs(residual) > 4 * sd(fit$residuals)
+    outlier = abs(.data$residual) > 4 * stats::sd(fit$residuals)
   ) %>%
-    dplyr::filter(!outlier)
+    dplyr::filter(!.data$outlier)
   
   glue::glue("Final RACiR dataset contains {n} rows ({p}%)\n", 
              n = nrow(data), 
@@ -384,10 +384,10 @@ prepare_data <- function(data, empty) {
   # include some stats on the fit
   ret <- data %>%
     dplyr::mutate(use = TRUE) %>%
-    dplyr::select(row, use) %>%
+    dplyr::select(.data$row, .data$use) %>%
     dplyr::full_join(original_data, by = "row") %>%
-    dplyr::arrange(row) %>%
-    dplyr::mutate(use = ifelse(is.na(use), FALSE, TRUE))
+    dplyr::arrange(.data$row) %>%
+    dplyr::mutate(use = ifelse(is.na(.data$use), FALSE, TRUE))
   
   ret
   

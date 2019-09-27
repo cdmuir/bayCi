@@ -21,21 +21,21 @@ new_racir <- function(.x) {
                            colnames(.x))
   
   # Check that required variables have proper units ----
-  checkmate::assert_class(dplyr::pull(.x, A), "units")
-  checkmate::assert_class(dplyr::pull(.x, Cr), "units")
-  checkmate::assert_class(dplyr::pull(.x, Cs), "units")
-  checkmate::assert_class(dplyr::pull(.x, E), "units")
-  checkmate::assert_class(dplyr::pull(.x, gsc), "units")
-  checkmate::assert_class(dplyr::pull(.x, gtc), "units")
-  checkmate::assert_class(dplyr::pull(.x, Pa), "units")
+  checkmate::assert_class(dplyr::pull(.x, .data$A), "units")
+  checkmate::assert_class(dplyr::pull(.x, .data$Cr), "units")
+  checkmate::assert_class(dplyr::pull(.x, .data$Cs), "units")
+  checkmate::assert_class(dplyr::pull(.x, .data$E), "units")
+  checkmate::assert_class(dplyr::pull(.x, .data$gsc), "units")
+  checkmate::assert_class(dplyr::pull(.x, .data$gtc), "units")
+  checkmate::assert_class(dplyr::pull(.x, .data$Pa), "units")
   .x %<>% dplyr::mutate(
-    A = units::set_units(A, umol / m^2 / s),
-    Cr = units::set_units(Cr, umol / mol),
-    Cs = units::set_units(Cs, umol / mol),
-    E = units::set_units(E, mol / m^2 / s),
-    gsc = units::set_units(gsc, mol / m^2 / s),
-    gtc = units::set_units(gtc, mol / m^2 / s),
-    Pa = units::set_units(Pa, kPa)
+    A = units::set_units(.data$A, umol / m^2 / s),
+    Cr = units::set_units(.data$Cr, umol / mol),
+    Cs = units::set_units(.data$Cs, umol / mol),
+    E = units::set_units(.data$E, mol / m^2 / s),
+    gsc = units::set_units(.data$gsc, mol / m^2 / s),
+    gtc = units::set_units(.data$gtc, mol / m^2 / s),
+    Pa = units::set_units(.data$Pa, kPa)
   )
 
   structure(

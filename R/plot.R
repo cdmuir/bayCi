@@ -10,7 +10,7 @@
 plot_racirfit <- function(
   racirfit, 
   .width = 0.95, 
-  .point = median, 
+  .point = stats::median, 
   .interval = tidybayes::qi
 ) {
   
@@ -28,26 +28,26 @@ plot_racirfit <- function(
       values_to = "predicted"
     ) %>%
     dplyr::mutate(
-      variable = stringr::str_replace(par, "^([[:alpha:]]+_[[:alpha:]]+)\\[([0-9]+)\\]$", "\\1"),
-      row = as.numeric(stringr::str_replace(par, "^([[:alpha:]]+_[[:alpha:]]+)\\[([0-9]+)\\]$", "\\2"))
+      variable = stringr::str_replace(.data$par, "^([[:alpha:]]+_[[:alpha:]]+)\\[([0-9]+)\\]$", "\\1"),
+      row = as.numeric(stringr::str_replace(.data$par, "^([[:alpha:]]+_[[:alpha:]]+)\\[([0-9]+)\\]$", "\\2"))
     ) %>%
-    dplyr::select(-.iter, -par) %>%
-    dplyr::group_by(row, variable) %>%
-    tidybayes::point_interval(predicted, .width = .width, .point = .point, 
+    dplyr::select(-.data$.iter, -.data$par) %>%
+    dplyr::group_by(.data$row, .data$variable) %>%
+    tidybayes::point_interval(.data$predicted, .width = .width, .point = .point, 
                               .interval = .interval) %>%
     tidyr::pivot_wider(
-      names_from = variable,
-      values_from = c(predicted, .lower, .upper)
+      names_from = .data$variable,
+      values_from = c(.data$predicted, .data$.lower, .data$.upper)
     ) %>%
-    dplyr::arrange(predicted_Ci_corrected)
+    dplyr::arrange(.data$predicted_Ci_corrected)
   
   aci_lines <- aci %>%
     dplyr::select(
-      row, 
-      Ci = predicted_Ci_corrected, 
-      Ac = predicted_predict_Ac,
-      Aj = predicted_predict_Aj,
-      Am = predicted_predict_Am
+      .data$row, 
+      Ci = .data$predicted_Ci_corrected, 
+      Ac = .data$predicted_predict_Ac,
+      Aj = .data$predicted_predict_Aj,
+      Am = .data$predicted_predict_Am
     ) %>%
     tidyr::pivot_longer(
       cols = tidyr::matches("^A[cjm]{1}$"),
@@ -57,14 +57,14 @@ plot_racirfit <- function(
   
   aci_ribbons <- aci %>%
     dplyr::select(
-      row, 
-      Ci = predicted_Ci_corrected, 
-      lower_Ac = .lower_predict_Ac,
-      lower_Aj = .lower_predict_Aj,
-      lower_Am = .lower_predict_Am,
-      upper_Ac = .upper_predict_Ac,
-      upper_Aj = .upper_predict_Aj,
-      upper_Am = .upper_predict_Am
+      .data$row, 
+      Ci = .data$predicted_Ci_corrected, 
+      lower_Ac = .data$.lower_predict_Ac,
+      lower_Aj = .data$.lower_predict_Aj,
+      lower_Am = .data$.lower_predict_Am,
+      upper_Ac = .data$.upper_predict_Ac,
+      upper_Aj = .data$.upper_predict_Aj,
+      upper_Am = .data$.upper_predict_Am
     ) %>%
     tidyr::pivot_longer(
       cols = tidyr::matches("A[cjm]{1}$"),
@@ -72,14 +72,14 @@ plot_racirfit <- function(
       values_to = "A"
     ) %>%
     dplyr::mutate(
-      ci = stringr::str_replace(limitation, 
+      ci = stringr::str_replace(.data$limitation, 
                                 "^([[:alpha:]]+)_(A[cjm]{1})$", "\\1"),
-      limitation = stringr::str_replace(limitation, 
+      limitation = stringr::str_replace(.data$limitation, 
                                         "^([[:alpha:]]+)_(A[cjm]{1})$", "\\2")
     ) %>%
     tidyr::pivot_wider(
-      names_from = ci,
-      values_from = A
+      names_from = .data$ci,
+      values_from = .data$A
     ) %>%
     dplyr::mutate(A = 0)
   
@@ -94,19 +94,24 @@ plot_racirfit <- function(
       values_to = "predicted"
     ) %>%
     dplyr::mutate(
-      variable = stringr::str_replace(par, "^([[:alpha:]]+_[[:alpha:]]+)\\[([0-9]+)\\]$", "\\1"),
-      row = as.numeric(stringr::str_replace(par, "^([[:alpha:]]+_[[:alpha:]]+)\\[([0-9]+)\\]$", "\\2"))
+      variable = stringr::str_replace(.data$par, "^([[:alpha:]]+_[[:alpha:]]+)\\[([0-9]+)\\]$", "\\1"),
+      row = as.numeric(stringr::str_replace(.data$par, "^([[:alpha:]]+_[[:alpha:]]+)\\[([0-9]+)\\]$", "\\2"))
     ) %>%
-    dplyr::select(-.iter, -par) %>%
-    dplyr::group_by(row, variable) %>%
-    tidybayes::point_interval(predicted) %>%
+    dplyr::select(-.data$.iter, -.data$par) %>%
+    dplyr::group_by(.data$row, .data$variable) %>%
+    tidybayes::point_interval(.data$predicted, .width = .width, .point = .point, 
+                              .interval = .interval) %>%
     tidyr::pivot_wider(
-      names_from = variable,
-      values_from = c(predicted, .lower, .upper)
+      names_from = .data$variable,
+      values_from = c(.data$predicted, .data$.lower, .data$.upper)
     ) %>%
-    dplyr::select(row, Ci = predicted_Ci_corrected, A = predicted_A_corrected)
+    dplyr::select(
+      .data$row, 
+      Ci = .data$predicted_Ci_corrected, 
+      A = .data$predicted_A_corrected
+    )
   
-  ggplot(aci_lines, aes(Ci, A, color = limitation)) +
+  ggplot(aci_lines, aes(.data$Ci, .data$A, color = .data$limitation)) +
     geom_point(
       data = aci_points,
       color = "black",
@@ -115,7 +120,8 @@ plot_racirfit <- function(
     geom_line() +
     geom_ribbon(
       data = aci_ribbons, 
-      mapping = aes(ymin = lower, ymax = upper, fill = limitation),
+      mapping = aes(ymin = .data$lower, ymax = .data$upper, 
+                    fill = .data$limitation),
       alpha = 0.5
     ) +
     theme_bw()

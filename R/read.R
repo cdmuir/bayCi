@@ -55,7 +55,7 @@ read_aci_file <- function(file, ...) {
   # assign aci class, let that do checks for columns
   # checks
   # - minimum licor columns
-  checkmate::assert_names(colnames(aci), type = "unique", must.include = essential_aci_cols)
+  # checkmate::assert_names(colnames(aci), type = "unique", must.include = essential_aci_cols)
   # - possible licor columns
   #   - detect fluoresence
   # - detect custom columns

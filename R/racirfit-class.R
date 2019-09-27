@@ -20,7 +20,6 @@ NULL
 
 #' @description - \code{new_racirfit} constructs a list into an 'racir' object
 #' @rdname racirfit-class
-#' @noRd
 #' 
 #' @param .x A \code{list} to be constructed into 'racirfit' class or validated.
 #' 
@@ -50,6 +49,7 @@ validate_racirfit <- function(.x) {
 
 #' @description - \code{racirfit} user-friendly way to create 'racirfit' objects
 #' @rdname racirfit-class
+#' @inheritParams new_racirfit
 #' @export
 racirfit <- function(.x) {
   
