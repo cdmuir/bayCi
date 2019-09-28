@@ -1,3 +1,4 @@
+// This is simply a copy of braycir_template.stan as a placeholder. Does not work.
 data {
   
   // Empty chamber data
@@ -63,14 +64,21 @@ model {
   
   // Finite mixture based on: https://mc-stan.org/docs/2_20/stan-users-guide/mixture-modeling-chapter.html
   
-  // Mixture weights
   vector[2] log_w = log(w);
+  // DESCRIBE
+  // real a;
+  // real bJ;
+  // real cJ;
+  // real bV;
+  // real cV;
+  // vector[n_data] Am;
   vector[n_data] Ac;
   vector[n_data] Aj;
 
   vector[n_data] A_corrected;
   vector[n_data] Ci_corrected;
-
+  // vector[n_data] Pci_corrected;
+  
   // Empty chamber priors
   priors_b0
   priors_b1
@@ -115,11 +123,27 @@ model {
     lps[2] += normal_lpdf(A_corrected[i] | Aj[i] - Rd, sigma_data);
     target += log_sum_exp(lps);
     
+    // Estimate g_mc
+    // a = -1 / gmc;
+    // bJ = (J / 4 - Rd) / gmc + Ci_corrected[i] + 2 * gamma_star;
+    // cJ = Rd * (Ci_corrected[i] + 2 * gamma_star) -
+    //   J / 4 * (Ci_corrected[i] - gamma_star);
+    // 
+    // bV = (Vcmax - Rd) / gmc + Ci_corrected[i] + Km;
+    // cV = Rd * (Ci_corrected[i] + Km) -
+    //   Vcmax * (Ci_corrected[i] - gamma_star);
+    // 
+    // Ac[i] = (sqrt(bV^2 - 4 * a * cV) - bV) / (2 * a) + Rd;
+    // Aj[i] = (sqrt(bJ^2 - 4 * a * cJ) - bJ) / (2 * a) + Rd;
+    
+    // Am[i] = (Ac[i] + Aj[i] - sqrt((Ac[i] + Aj[i]) ^ 2) - 4 * theta * Ac[i] * Aj[i]) / (2 * theta) - Rd;
+
   }
 
   // Likelihood
   A_empty ~ normal(pred, sigma_cor);
-
+  // A_corrected ~ normal(Ac , sigma_data);
+  
 }
 generated quantities {
   

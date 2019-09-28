@@ -143,7 +143,7 @@ prepare_empty <- function(empty) {
  
   # Note: could add argument to try up to Nth order polynomial, rather than default to 3rd order.
   
-  # Note: I do not think this is account for irregular spacing once points are removed
+  # Note: ts analysis does not account for irregular spacing once points are removed
   
   # Messages ----
   "Preparing empty chamber response curve" %>%
@@ -306,26 +306,6 @@ prepare_empty <- function(empty) {
     dplyr::mutate(use = ifelse(is.na(.data$use), FALSE, TRUE))
  
   ret
-  
-}
-
-
-safe_gls <- purrr::safely(nlme::gls)
-find_q <- function(model, data, max.q) {
-  
-  purrr::map(1:max.q, ~ {
-    ret <- safe_gls(model = model, data = data, 
-                    correlation = nlme::corARMA(p = 0, q = .x))
-    ret$q <- .x
-    ret
-  }) %>%
-    purrr::map_dfr( ~ {
-      data.frame(q = .x$q, AIC = ifelse(is.null(.x$result), NA, stats::AIC(.x$result)))
-    }) %>%
-    dplyr::filter(!is.na(.data$AIC)) %>%
-    dplyr::arrange(.data$AIC) %>%
-    dplyr::pull(.data$q) %>%
-    dplyr::first()
   
 }
 

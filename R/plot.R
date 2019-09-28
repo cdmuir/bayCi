@@ -1,4 +1,6 @@
-#' Plot racirfit
+#' Plot A-Ci curve, data, and confidence bands from a \code{\link[racirfit-class]{racirfit}} object
+#' 
+#' @rdname plot
 #' 
 #' @param racirfit An object of class \code{\link[=racirfit-class]{racirfit}} containing a fitted RACiR curve.
 #' @param .width A probability to use that determine the width of the confidence intervals for plotting predicted A. Passed to \code{\link[tidybayes]{point_interval}}. Default is 0.95.
@@ -17,29 +19,12 @@ plot_racirfit <- function(
   checkmate::assert_class(racirfit, classes = c("racirfit", "list"))
   checkmate::assert_number(.width, lower = 0, upper = 1, finite = TRUE)
 
-    aci <- as.data.frame(
-    racirfit$fit, 
-    pars = c("Ci_corrected", "predict_Ac", "predict_Aj", "predict_Am")
-  ) %>%
-    dplyr::mutate(.iter = 1:nrow(.)) %>%
-    tidyr::pivot_longer(
-      cols = tidyr::matches("^[[:alpha:]]+_[[:alpha:]]+\\[[0-9]+\\]$"),
-      names_to = "par",
-      values_to = "predicted"
-    ) %>%
-    dplyr::mutate(
-      variable = stringr::str_replace(.data$par, "^([[:alpha:]]+_[[:alpha:]]+)\\[([0-9]+)\\]$", "\\1"),
-      row = as.numeric(stringr::str_replace(.data$par, "^([[:alpha:]]+_[[:alpha:]]+)\\[([0-9]+)\\]$", "\\2"))
-    ) %>%
-    dplyr::select(-.data$.iter, -.data$par) %>%
-    dplyr::group_by(.data$row, .data$variable) %>%
-    tidybayes::point_interval(.data$predicted, .width = .width, .point = .point, 
-                              .interval = .interval) %>%
-    tidyr::pivot_wider(
-      names_from = .data$variable,
-      values_from = c(.data$predicted, .data$.lower, .data$.upper)
-    ) %>%
-    dplyr::arrange(.data$predicted_Ci_corrected)
+  aci <- braycir_point_interval(
+    racirfit, 
+    .width = .width, 
+    .point = .point, 
+    .interval = .interval
+  )
   
   aci_lines <- aci %>%
     dplyr::select(
@@ -83,33 +68,12 @@ plot_racirfit <- function(
     ) %>%
     dplyr::mutate(A = 0)
   
-  aci_points <- as.data.frame(
-    racirfit$fit, 
-    pars = c("Ci_corrected", "A_corrected")
-  ) %>%
-    dplyr::mutate(.iter = 1:nrow(.)) %>%
-    tidyr::pivot_longer(
-      cols = tidyr::matches("^[[:alpha:]]+_[[:alpha:]]+\\[[0-9]+\\]$"),
-      names_to = "par",
-      values_to = "predicted"
-    ) %>%
-    dplyr::mutate(
-      variable = stringr::str_replace(.data$par, "^([[:alpha:]]+_[[:alpha:]]+)\\[([0-9]+)\\]$", "\\1"),
-      row = as.numeric(stringr::str_replace(.data$par, "^([[:alpha:]]+_[[:alpha:]]+)\\[([0-9]+)\\]$", "\\2"))
-    ) %>%
-    dplyr::select(-.data$.iter, -.data$par) %>%
-    dplyr::group_by(.data$row, .data$variable) %>%
-    tidybayes::point_interval(.data$predicted, .width = .width, .point = .point, 
-                              .interval = .interval) %>%
-    tidyr::pivot_wider(
-      names_from = .data$variable,
-      values_from = c(.data$predicted, .data$.lower, .data$.upper)
-    ) %>%
-    dplyr::select(
-      .data$row, 
-      Ci = .data$predicted_Ci_corrected, 
-      A = .data$predicted_A_corrected
-    )
+  aci_points <- predict_braycir(
+    racirfit, 
+    .width = .width, 
+    .point = .point, 
+    .interval = .interval
+  )
   
   ggplot(aci_lines, aes(.data$Ci, .data$A, color = .data$limitation)) +
     geom_point(

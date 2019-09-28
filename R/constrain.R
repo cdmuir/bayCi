@@ -50,14 +50,14 @@ get_c_constraints <- function(data, empty, gamma_star, Km, conf.level = 0.999) {
     b0 = unname(stats::confint(fit, level = conf.level)["(Intercept)", 1]),
     b1 = unname(stats::confint(fit, level = conf.level)["Cr", 1]),
     b2 = unname(stats::confint(fit, level = conf.level)["I(Cr^2)", 1]),
-    sigma_empty = 0.1 * pars["sigma_empty"]
+    sigma_empty = 0.1 * unname(pars["sigma_empty"])
   )
 
   upars <- c(
     b0 = unname(stats::confint(fit, level = conf.level)["(Intercept)", 2]),
     b1 = unname(stats::confint(fit, level = conf.level)["Cr", 2]),
     b2 = unname(stats::confint(fit, level = conf.level)["I(Cr^2)", 2]),
-    sigma_empty = 10 * pars["sigma_empty"]
+    sigma_empty = 10 * unname(pars["sigma_empty"])
   )
   
   data_c <- data %>%
@@ -72,12 +72,12 @@ get_c_constraints <- function(data, empty, gamma_star, Km, conf.level = 0.999) {
       Km = Km
     )  
   
-  stats::quantile(data_c$Ci_corrected, probs = c(0.25, 0.5, 0.75, 1)) %>%
+  ret <- stats::quantile(data_c$Ci_corrected, probs = c(0.25, 0.5, 0.75, 1)) %>%
     purrr::map_dfr(~ {
       
       dc <- dplyr::filter(data_c, .data$Ci_corrected < .x)
       
-      fit_init_c1 <- stats::lm(A_c ~ Ci_c, data = dc,)
+      fit_init_c1 <- stats::lm(A_c ~ Ci_c, data = dc)
       
       init <- c(
         pars, 
@@ -114,21 +114,58 @@ get_c_constraints <- function(data, empty, gamma_star, Km, conf.level = 0.999) {
         data = dc, empty = empty, gamma_star = gamma_star, Km = Km
       )
       
-      se <- qnorm(conf.level) * sqrt(abs(diag(solve(fit_init_c2$hessian))))
+      se <- tryCatch({
+        sqrt(abs(diag(MASS::ginv(fit_init_c2$hessian))))
+      },
+      error = function(cond) {
+        message("\nTrouble finding standard errors for carboxylation-limited parameters. This isn't necessarily a problem, but check results before your wreck results.")
+        message("Here's the original error message:")
+        message(cond)
+        # Choose a return value in case of error
+        return(0)
+      })
       
       tibble::tibble(
         parameter = names(fit_init_c2$par),
-        low = fit_init_c2$par - se,
-        high = fit_init_c2$par + se
+        low = fit_init_c2$par - stats::qnorm(conf.level) * se,
+        high = fit_init_c2$par + stats::qnorm(conf.level) * se
       )
       
     }) %>%
     dplyr::group_by(.data$parameter) %>%
     dplyr::summarize(low = min(.data$low), high = max(.data$high)) %>%
     dplyr::mutate(mid = (.data$high + .data$low) / 2)
+    
+  # Hack in constraints if optim cannot find them
+  if (any(ret$low == ret$high)) {
+    warning("\nI did not find good constraints for carboxylation-limited parameters. This isn't necessarily a problem, but check results before your wreck results.")
+    ret %<>%
+      hack_c_constraints("b0", 2) %>%
+      hack_c_constraints("b1", 0.2) %>%
+      hack_c_constraints("b2", 0.02) %>%
+      hack_c_constraints("sigma_empty", 1, 0) %>%
+      hack_c_constraints("Rd", 5, 0) %>%
+      hack_c_constraints("Vcmax", 50, 0) %>%
+      hack_c_constraints("sigma_data", 1, 0)
+    
+  }
+  
+  ret
   
 }
 
+hack_c_constraints <- function(.x, par, offset, min = -Inf, max = Inf) {
+  
+  if (.x$low[.x$parameter == par] == .x$high[.x$parameter == par]) {
+    .x$low[.x$parameter == par] <- 
+      max(min, .x$low[.x$parameter == par] - offset)
+    .x$high[.x$parameter == par] <- 
+      min(max, .x$high[.x$parameter == par] + offset)
+  }
+  
+  .x
+  
+}
 #' Constrain parameters on RuBP-regeneration-limited portion of the curve
 #' @noRd
 get_j_constraints <- function(data, empty, gamma_star, conf.level = 0.999) {
