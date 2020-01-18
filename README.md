@@ -15,7 +15,7 @@ Status](https://travis-ci.org/cdmuir/bayci.svg?branch=master)](https://travis-ci
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges: end -->
 
-The goal of bayCi is to …
+**This by no means ready to use - I've just made it public so you can see what I'm trying to do. I welcome contributions and collaboration to help move this package closer to useability.**
 
 ## Installation
 
